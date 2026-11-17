@@ -81,10 +81,18 @@ export class Lighting {
     this.mesh.renderOrder = 1000;
   }
 
-  update(scale: number, worldLeft: number, worldBottom: number) {
+  private pick: Light[] = [];
+
+  /** viewW: visible world width, so only lights that can touch the screen are uploaded (nearest first). */
+  update(scale: number, worldLeft: number, worldBottom: number, viewW = Infinity) {
     let n = 0;
-    for (const l of this.lights) {
-      if (l.on === false || n >= MAX_LIGHTS) continue;
+    const cx = worldLeft + viewW / 2;
+    const pick = this.pick;
+    pick.length = 0;
+    for (const l of this.lights) if (l.on !== false && Math.abs(l.x - cx) - l.r < viewW / 2) pick.push(l);
+    if (pick.length > MAX_LIGHTS) pick.sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx));
+    for (const l of pick) {
+      if (n >= MAX_LIGHTS) break;
       this.data.set([l.x, l.y, l.r, l.i], n * 4);
       this.cone.set([l.dir ?? 1, l.half ?? 0, l.half ? 1 : 0, 0], n * 4);
       n++;

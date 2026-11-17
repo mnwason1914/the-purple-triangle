@@ -26,7 +26,7 @@ export interface Chapter {
 }
 
 const $ = (id: string) => document.getElementById(id)!;
-const ITEM_FRAMES: Record<string, string> = { magazines: 'magazines', letter: 'letter', leaflets: 'bundle' };
+const ITEM_FRAMES: Record<string, string> = { magazines: 'magazines', letter: 'letter', leaflets: 'bundle', book: 'mannabook' };
 
 export class Game {
   readonly view: View;
@@ -342,7 +342,7 @@ export class Game {
       if (this.state === 'play') this.followCamera(dt);
     }
     this.view.setCamera(this.camX, this.scene?.camY ?? 56);
-    this.lighting.update(this.view.scale, this.view.left, this.view.bottom);
+    this.lighting.update(this.view.scale, this.view.left, this.view.bottom, this.view.w);
 
     if (this.settings.saver && now - this.lastRender < 1 / 30 - 0.004) return;
     this.lastRender = now;

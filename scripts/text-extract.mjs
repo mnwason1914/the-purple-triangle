@@ -5,7 +5,8 @@ import ts from 'typescript';
 
 const HANGUL = /[가-힣]/;
 const SKIP_FILES = ['src/characters/cast.ts']; // proper names stay fixed
-const FILES = ['src/data/chapter1.ts', 'src/game/game.ts', 'src/main.ts'];
+// Chapter text is written as a script (story/script-ch1.md) and lives in src/data/chapter1.ts directly.
+const FILES = ['src/game/game.ts', 'src/main.ts'];
 const out = [];
 // code-only comparisons and fixed names that are not rewritten
 const EXCLUDE = new Set(['엘리제', '현관에']);

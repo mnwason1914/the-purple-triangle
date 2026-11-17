@@ -352,6 +352,13 @@ export function propGrids(): Record<string, Grid> {
   mk('floorboard_open', 20, 10, (g) => { g.rect(0, 2, 20, 6, '#1a1210'); g.rect(3, 3, 10, 3, '#d8d0b0'); g.rect(0, 0, 20, 2, '#946a46'); }, false);
   mk('doll', 8, 12, (g) => { g.ellipse(4, 3, 3, 3, '#f0d8c0'); g.rect(1, 0, 6, 2, '#c9944a'); g.rect(2, 6, 5, 6, '#4a7aa8'); g.px(3, 3, '#2a2030'); });
   mk('magazines', 14, 6, (g) => { g.rect(0, 2, 14, 4, '#e8e0c8'); g.rect(1, 0, 12, 3, '#d8d0b0'); g.hline(2, 11, 1, '#7a5a7a'); g.hline(1, 12, 4, '#a89878'); });
+  mk('mannabook', 9, 6, (g) => { g.rect(0, 0, 9, 6, '#2e3a5a'); g.rect(1, 1, 7, 4, '#3a4a6e'); g.vline(0, 0, 5, '#1e2638'); g.hline(2, 6, 2, '#c9a860'); }, false);
+  mk('board', 24, 34, (g) => {
+    // street notice board for the winter relief collection, with a small lamp on top
+    g.rect(11, 14, 2, 20, '#2a2a2e'); g.rect(0, 12, 24, 3, '#2a2a2e'); g.rect(8, 9, 8, 3, '#2a2a2e'); g.rect(9, 10, 6, 2, '#ffe6a0');
+    g.rect(1, 15, 22, 12, '#5a4030'); g.rect(2, 16, 20, 10, '#c8b890'); g.rect(4, 17, 7, 8, '#a83a2e'); g.rect(13, 17, 7, 3, '#3a3a3a'); g.rect(13, 21, 7, 4, '#e8e0c8');
+    g.hline(1, 22, 15, '#e8eef4');
+  });
   mk('letter', 8, 5, (g) => { g.rect(0, 0, 8, 5, '#f0ead8'); g.px(3, 2, '#a89878'); g.px(4, 2, '#a89878'); });
   mk('coalbucket', 12, 12, (g) => { g.rect(1, 3, 10, 9, '#4a4a50'); g.hline(0, 11, 3, '#5a5a62'); g.rect(2, 1, 8, 3, '#1e1e22'); g.px(5, 0, '#2a2a2e'); g.rect(1, 0, 1, 3, '#5a5a62'); g.rect(10, 0, 1, 3, '#5a5a62'); });
   mk('mailbox', 10, 12, (g) => {

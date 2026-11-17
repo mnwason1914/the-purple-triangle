@@ -3,13 +3,24 @@
 A mobile-first 2D pixel-art story game (Three.js + TypeScript + Vite, orthographic camera).
 It is set in Germany in 1936. Elise Hartmann is a seamstress and a Jehovah's Witness in the small Westphalian town of Lindenfeld, at a time when her faith is banned.
 
-The playable vertical slice is **Chapter 1, "December"** (12 December 1936), roughly 10–20 minutes long:
-1. **Morning**: explore the flat. Lotte comes home after refusing the Hitler salute at school, and the player makes a choice. Paul brings literature and a letter.
-2. **The knock**: police are at the door. Hide the magazines and the letter in about 22 seconds. Hiding places are a coffee pot, the stove (burn the letter), a potato bin, a loose floorboard, Lotte's schoolbag (only if she trusts you), the sewing basket or the wardrobe. Opening the door early changes how thorough the search is.
-3. **The search and interrogation**: choose how to answer the greeting, then whether to name the supplier. What they find decides whether Paul is taken.
-4. **Dusk**: decide whether to go out at all. In the stairwell, help Frau Krüger (the block warden's wife) or walk past her.
-5. **The street, 17:00–19:00**: a stealth mission. Collect 12 leaflets at the bakery and push one into each mailbox (hold the button). Avoid Wachtmeister Brandt's lamp by hiding in doorways and behind carts. Gestapo man Vogt appears if earlier choices exposed the network. Getting caught branches into a warning, confiscation or arrest.
-6. **Consequences**: the epilogue cards and closing summary reflect every major choice.
+The playable vertical slice is **Chapter 1, "December"** (12 December 1936), roughly 10–20 minutes long.
+
+### How the chapter is written
+1. `story/story.md` — the story (v1 kept as `story-v1.md`).
+2. Gemini reviewed it → `story/gemini-review.md`; each point was checked against `research/` → `story/review-response.md`; the story was revised to v2.
+3. `story/beats-ch1.md` — beat sheet with every branch.
+4. Gemini wrote the script scene by scene (`story/script/run.sh` → `story/script/*.md`), assembled with logged editorial fixes into **`story/script-ch1.md`** (`story/script-review.md`).
+5. `src/data/chapter1.ts` implements that script line for line.
+
+### Chapter 1 in play
+1. **Morning**: explore the flat (radio, calendar, wedding photo, the loose floorboard, the *Manna* birthday book on the shelf).
+2. **Frau Krüger collects for the Winter Relief**: donate or decline.
+3. **Lotte comes home** after refusing the salute; three answers set her trust. **Paul** brings two *Watchtower* issues and Johann's letter.
+4. **The knock (25 s)**: pick up two magazines and the birthday book, hide them and the letter. Hiding places have limited room (floorboard 2, potato bin 1, wardrobe 2, basket 1; coffee pot and Lotte's schoolbag take only the letter; the stove burns the letter or the book). Opening the door yourself keeps the potato bin and floorboard from being searched.
+5. **Search and interrogation**: answer the greeting; name the supplier or not. Found magazines mean Paul is taken; a found birthday book puts the names in it on file.
+6. **Dusk**, then the **stairwell** (help Frau Krüger or not).
+7. **The street, 17:00–19:00**: 20 leaflets, one per house, into 20 mailboxes or door gaps. Avoid Brandt's lamp and the lit notice board; Vogt patrols if suspicion is high.
+8. **Ending**: cards and summary lines reflect every choice.
 
 ## Run
 
@@ -49,7 +60,9 @@ src/controls    touch/keyboard/gamepad input
 src/audio       synthesised audio
 src/ui          DOM UI + styles
 src/game        game loop & script API
-src/data        chapter scripts (chapter1.ts)
+src/data        chapter scripts (chapter1.ts), UI text table
+src/text        on-screen text pass (menus via Gemini table)
+story/          story, Gemini review, beat sheet, Gemini script
 research/       internal historical references (never shown in game)
 development/    decisions log & task board
 tests/          art contact-sheet renderer
