@@ -78,11 +78,19 @@ async function generate(model, prompt) {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: { responseMimeType: 'application/json', temperature: 0.9 },
   };
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const r = await fetch(`${API}/models/${model}:generateContent`, {
-      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': KEY }, body: JSON.stringify(body),
-    });
-    if (r.status === 429 || r.status >= 500) { await new Promise((ok) => setTimeout(ok, 4000 * 2 ** attempt)); continue; }
+  for (let attempt = 0; attempt < 7; attempt++) {
+    let r;
+    try {
+      r = await fetch(`${API}/models/${model}:generateContent`, {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': KEY }, body: JSON.stringify(body),
+        signal: AbortSignal.timeout(240000),
+      });
+    } catch (err) { console.log(`(응답 없음, 다시 시도: ${err.name})`); continue; }
+    if (r.status === 429 || r.status >= 500) {
+      const wait = Math.min(90, 10 * 2 ** attempt);
+      console.log(`(${r.status}, ${wait}초 뒤 다시 시도)`);
+      await new Promise((ok) => setTimeout(ok, wait * 1000)); continue;
+    }
     if (!r.ok) throw new Error(`Gemini ${r.status}: ${await r.text()}`);
     const j = await r.json();
     const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
@@ -96,11 +104,18 @@ const report = [];
 let model = 'DRY';
 if (!DRY) { model = await pickModel(); console.log('모델:', model); }
 
+const RESUME = args.includes('--resume');
+const CHUNK = 24;
+const jobs = [];
 for (const scene of ORDER) {
   if (ONLY && scene !== ONLY) continue;
-  const items = source.filter((e) => e.scene === scene);
-  const done = ORDER.slice(0, ORDER.indexOf(scene))
-    .flatMap((sc) => source.filter((e) => e.scene === sc && result[e.text]).map((e) => fmt(e, result[e.text])));
+  const all = source.filter((e) => e.scene === scene && !(RESUME && prev[e.text] !== undefined));
+  for (let i = 0; i < all.length; i += CHUNK) jobs.push([scene, all.slice(i, i + CHUNK)]);
+}
+for (const [scene, items] of jobs) {
+  const done = source
+    .filter((e) => ORDER.indexOf(e.scene) <= ORDER.indexOf(scene) && result[e.text] && !items.includes(e))
+    .map((e) => fmt(e, result[e.text]));
   const prompt = [
     '아래는 제1장의 원문 대본 전체다(형식: id [종류 · 화자 · 표정] "원문"). 흐름과 맥락을 파악하는 용도다.',
     fullScript,
@@ -130,8 +145,18 @@ for (const scene of ORDER) {
 }
 
 if (!DRY) {
+  // editorial corrections + quote cleanup, re-applied after every run
+  const review = fs.existsSync('scripts/gemini/review.json') ? JSON.parse(fs.readFileSync('scripts/gemini/review.json', 'utf8')) : {};
+  for (const e of source) {
+    const v = result[e.text];
+    if (v && /^".*"$/s.test(v) && !/^".*"$/s.test(e.text) && e.kind !== 'choice') result[e.text] = v.slice(1, -1);
+    if (review[e.text] !== undefined) result[e.text] = review[e.text];
+  }
+  fs.writeFileSync(outPath, JSON.stringify(result, null, 1) + '\n');
   fs.writeFileSync('development/gemini-report.md',
     `# 제미나이 대본 보고서\n\n모델: ${model} · ${new Date().toISOString()}\n` +
-    `새로 쓴 줄 ${Object.keys(result).length} / 전체 ${source.length}\n\n` + report.join('\n') + '\n');
+    `새로 쓴 줄 ${Object.keys(result).length} / 전체 ${source.length}\n\n` +
+    (report.filter((l) => l.includes('❌')).join('\n') || '') + '\n\n## 전체 비교\n\n' +
+    ORDER.map((sc) => `### ${sc}\n` + source.filter((e) => e.scene === sc).map((e) => `- \`${e.kind}${e.speaker ? '·' + e.speaker : ''}\` ${e.text}\n  → ${result[e.text] ?? '(원문 유지)'}`).join('\n')).join('\n\n') + '\n');
   console.log(`\n${Object.keys(result).length}/${source.length}줄 교체 → ${outPath}\n검토용 비교표 → development/gemini-report.md`);
 }
