@@ -2,10 +2,12 @@ import './ui/style.css';
 import { Game } from './game/game';
 import { Chapter1, titleScene } from './data/chapter1';
 import { Save } from './systems/save';
+import { txDom } from './text/tx';
 
 const $ = (id: string) => document.getElementById(id)!;
 
 function boot() {
+  txDom();
   let game: Game;
   try {
     game = new Game();

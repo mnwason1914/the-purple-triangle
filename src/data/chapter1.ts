@@ -316,7 +316,9 @@ async function knock(g: Game) {
   await hideSequence(g);
 }
 
-type Place = 'carried' | 'coffeepot' | 'potato' | 'floor' | 'bag' | 'basket' | 'wardrobe' | 'burned';
+type Place = 'left' | 'carried' | 'coffeepot' | 'potato' | 'floor' | 'bag' | 'basket' | 'wardrobe' | 'burned';
+const MAGS = ['mag1', 'mag2', 'mag3'] as const;
+const ITEMS = [...MAGS, 'letter'] as const;
 
 async function hideSequence(g: Game) {
   const s = g.scene!;
@@ -324,47 +326,71 @@ async function hideSequence(g: Game) {
   const paul = s.actors.get('paul')!;
   const lotte = s.actors.get('lotte')!;
   g.audio.ambience('tension');
-  const place: Record<string, Place> = { magazines: 'carried', letter: 'carried' };
-  let left = 22;
+  // Three issues lie around the room; the letter is in her hand. Every hiding place holds only so much.
+  const place: Record<string, Place> = { mag1: 'left', mag2: 'left', mag3: 'left', letter: 'carried' };
+  const spots: Record<string, [number, number]> = { mag1: [X.table + 4, 22], mag2: [230, 64], mag3: [X.bed + 18, 26] };
+  for (const m of MAGS) s.prop(m, 'magazines', spots[m][0], spots[m][1], -16);
+  let left = 25;
   let done = false;
   let forced = false;
-  g.objective('「파수대」와 편지를 숨기자');
+  g.take('magazines');
+  g.give('letter');
+
+  const carriedMags = () => MAGS.filter((m) => place[m] === 'carried');
+  const syncInv = () => { if (carriedMags().length) g.give('magazines'); else g.take('magazines'); if (place.letter !== 'carried') g.take('letter'); };
+  const used: Record<string, number> = {};
+  const room = (spot: string, cap: number) => cap - (used[spot] ?? 0);
+  /** Put what fits: magazines first, then the letter. */
+  const stash = (spot: Place, cap: number, mags: boolean, letter: boolean) => {
+    if (mags) for (const m of carriedMags()) if (room(spot, cap) > 0) { place[m] = spot; used[spot] = (used[spot] ?? 0) + 1; }
+    if (letter && place.letter === 'carried' && room(spot, cap) > 0) { place.letter = spot; used[spot] = (used[spot] ?? 0) + 1; }
+    syncInv();
+  };
+  const can = (spot: string, cap: number, mags: boolean, letter: boolean) =>
+    room(spot, cap) > 0 && ((mags && carriedMags().length > 0) || (letter && place.letter === 'carried'));
+
+  await g.think('새 호는 탁자 위에. 지난 호들은 선반과 침대 머리맡에. 그리고 손에는 요한의 편지.');
+  await g.think('노이만 씨 집에서는 옷장과 바구니부터 뒤졌다고 했다.');
+  g.endTalk();
+  g.objective('「파수대」 세 부와 편지를 숨기자');
   g.toast('문 두드리는 소리가 커진다', 2);
 
-  const stash = (item: string, p: Place) => { place[item] = p; g.take(item); };
-  const allHidden = () => !g.has('magazines') && !g.has('letter');
+  const pick = (m: (typeof MAGS)[number]) => ({
+    id: m, x: spots[m][0], r: 10, verb: '집기', enabled: () => place[m] === 'left', use: async () => {
+      g.sfx('paper'); e.pose = 'reach'; await g.wait(0.35); e.pose = null;
+      place[m] = 'carried'; s.props.get(m)!.mesh.visible = false; syncInv();
+    },
+  });
 
   s.hotspots = [
-    { id: 'coffeepot', x: X.stove + 6, r: 9, verb: '커피포트', enabled: () => g.has('letter'), use: async () => {
-      g.sfx('hide'); stash('letter', 'coffeepot'); g.toast('편지를 커피포트 안에 접어 넣었다');
+    pick('mag1'), pick('mag2'), pick('mag3'),
+    { id: 'coffeepot', x: X.stove + 6, r: 9, verb: '커피포트', enabled: () => can('coffeepot', 1, false, true), use: async () => {
+      g.sfx('hide'); stash('coffeepot', 1, false, true); g.toast('편지를 커피포트 안에 접어 넣었다');
     } },
-    { id: 'stove', x: X.stove - 6, r: 8, verb: '태우기', enabled: () => g.has('letter'), use: async () => {
-      g.sfx('fire'); e.pose = 'crouch'; await g.wait(1.4); e.pose = null; stash('letter', 'burned'); g.toast('편지는 재가 되었다');
+    { id: 'stove', x: X.stove - 6, r: 8, verb: '태우기', enabled: () => place.letter === 'carried', use: async () => {
+      g.sfx('fire'); e.pose = 'crouch'; await g.wait(1.4); e.pose = null; stash('burned', 9, false, true); g.toast('편지는 재가 되었다');
     } },
-    { id: 'potato', x: X.potato, r: 10, verb: '감자 상자', enabled: () => !allHidden(), use: async () => {
+    { id: 'potato', x: X.potato, r: 10, verb: '감자 상자', enabled: () => can('potato', 1, true, true), use: async () => {
       e.pose = 'crouch'; g.sfx('hide'); await g.wait(1.1); e.pose = null;
-      if (g.has('magazines')) stash('magazines', 'potato'); if (g.has('letter')) stash('letter', 'potato');
-      g.toast('감자 밑에 묻었다');
+      stash('potato', 1, true, true); g.toast('감자 밑에 묻었다. 하나가 겨우 들어간다');
     } },
-    { id: 'basket', x: X.basket, r: 9, verb: '바구니', enabled: () => !allHidden(), use: async () => {
-      g.sfx('hide'); if (g.has('magazines')) stash('magazines', 'basket'); if (g.has('letter')) stash('letter', 'basket');
-      g.toast('천 조각 밑에 밀어 넣었다');
+    { id: 'basket', x: X.basket, r: 9, verb: '바구니', enabled: () => can('basket', 1, true, true), use: async () => {
+      g.sfx('hide'); stash('basket', 1, true, true); g.toast('천 조각 밑에 밀어 넣었다');
     } },
-    { id: 'wardrobe', x: X.wardrobe, r: 14, verb: '옷장', enabled: () => !allHidden(), use: async () => {
-      g.sfx('door', 0.5); if (g.has('magazines')) stash('magazines', 'wardrobe'); if (g.has('letter')) stash('letter', 'wardrobe');
-      g.toast('침대보 사이에 끼워 넣었다');
+    { id: 'wardrobe', x: X.wardrobe, r: 14, verb: '옷장', enabled: () => can('wardrobe', 2, true, true), use: async () => {
+      g.sfx('door', 0.5); stash('wardrobe', 2, true, true); g.toast('침대보 사이에 끼워 넣었다');
     } },
-    { id: 'floor', x: X.floor, r: 10, verb: '마룻장', hold: 1.8, enabled: () => !allHidden(), use: async () => {
+    { id: 'floor', x: X.floor, r: 10, verb: '마룻장', hold: 1.8, enabled: () => can('floor', 2, true, true), use: async () => {
       s.props.get('floorboard')!.set('floorboard_open'); g.sfx('hide'); await g.wait(0.3);
-      if (g.has('magazines')) stash('magazines', 'floor'); if (g.has('letter')) stash('letter', 'floor');
-      s.props.get('floorboard')!.set('floorboard'); g.toast('마룻장을 다시 덮고 러그를 폈다');
+      stash('floor', 2, true, true);
+      s.props.get('floorboard')!.set('floorboard'); g.toast('마룻장 밑은 두 부가 한계다');
     } },
-    { id: 'bag', x: X.bag - 6, r: 12, verb: '로테에게', enabled: () => g.has('letter'), use: async () => {
+    { id: 'bag', x: X.bag - 6, r: 12, verb: '로테에게', enabled: () => place.letter === 'carried', use: async () => {
       if (g.flag('lotte_trust', 1) >= 2) {
         await g.say('lotte', 'resolute', '…내 가방에. 공책 사이에.');
         g.endTalk();
         lotte.pose = 'crouch'; g.sfx('paper'); await g.wait(0.8); lotte.pose = null;
-        stash('letter', 'bag');
+        stash('bag', 1, false, true);
       } else {
         await g.say('lotte', 'afraid', '엄마… 나 무서워.');
         g.endTalk();
@@ -436,11 +462,20 @@ async function hideSequence(g: Game) {
   const check = async (who: Actor, x: number, label: string, hits: (p: Place) => boolean) => {
     await who.walkTo(x);
     who.pose = 'reach'; g.sfx('hide', 0.6); await g.wait(0.9); who.pose = null;
-    for (const item of ['magazines', 'letter']) if (hits(place[item])) found.push(item);
+    for (const item of ITEMS) if (hits(place[item])) found.push(item);
     if (label) g.toast(label, 1.4);
   };
-  for (const item of ['magazines', 'letter']) if (place[item] === 'carried') found.push(item);
+  for (const item of ITEMS) if (place[item] === 'carried') found.push(item);
   if (found.length) { await g.say('vogt', 'stern', '손에 든 그건 뭐요. 이리 주시오.'); g.endTalk(); }
+  const lying = MAGS.filter((m) => place[m] === 'left');
+  if (lying.length) {
+    await brandt.walkTo(spots[lying[0]][0] - 8);
+    found.push(...lying);
+    for (const m of lying) s.props.get(m)!.mesh.visible = false;
+    g.sfx('paper');
+    await g.say('brandt', 'neutral', lying.length > 1 ? '숨길 생각도 안 했군요. 여기저기 그대로 있습니다.' : '여기 하나 그대로 있습니다.');
+    g.endTalk();
+  }
   await check(brandt, X.table, '탁자', () => false);
   await check(vogt, X.basket, '재봉 바구니', (p) => p === 'basket');
   await check(brandt, X.stove, '난로', () => false);
@@ -465,11 +500,12 @@ async function hideSequence(g: Game) {
   }
   g.endTalk();
 
-  const magsFound = found.includes('magazines');
+  const magsFound = found.some((f) => f !== 'letter');
   const letterFound = found.includes('letter');
   g.set('mags_found', magsFound);
   g.set('letter_found', letterFound);
-  g.inc('suspicion', (forced ? 1 : 0) + found.length + (g.flag('refused_greeting', false) ? 1 : 0));
+  g.inc('suspicion', (forced ? 1 : 0) + (magsFound ? 1 : 0) + (letterFound ? 1 : 0) + (g.flag('refused_greeting', false) ? 1 : 0));
+  g.take('magazines'); g.take('letter');
 
   await vogt.walkTo(e.x + 18); vogt.facing = -1;
   if (magsFound) {

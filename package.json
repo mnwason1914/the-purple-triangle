@@ -9,16 +9,20 @@
     "preview": "vite preview --host",
     "icons": "node scripts/gen-icons.mjs",
     "test": "esbuild tests/sheet.ts --bundle --platform=node --outfile=tests/.sheet.cjs --log-level=warning && node tests/.sheet.cjs tests/art-sheet.png",
-    "deploy": "sh scripts/deploy.sh"
+    "deploy": "sh scripts/deploy.sh",
+    "text:extract": "node scripts/text-extract.mjs",
+    "text:gemini": "node scripts/text-extract.mjs && node scripts/gemini-write.mjs",
+    "deploy:js": "npm run build && node scripts/jsgit.mjs pages"
   },
   "dependencies": {
     "three": "0.170.0"
   },
   "devDependencies": {
     "@types/three": "0.170.0",
+    "esbuild": "0.21.5",
+    "isomorphic-git": "^1.27.1",
     "typescript": "5.6.3",
-    "vite": "5.4.11",
-    "esbuild": "0.21.5"
+    "vite": "5.4.11"
   },
   "allowScripts": {
     "esbuild@0.21.5": true

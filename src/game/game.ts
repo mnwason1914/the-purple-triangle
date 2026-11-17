@@ -1,3 +1,4 @@
+import { tx } from '../text/tx';
 import * as THREE from 'three';
 import { Actor } from '../characters/actor';
 import { LOOKS, NAMES, PORTRAITS } from '../characters/cast';
@@ -115,7 +116,7 @@ export class Game {
     $('opt-music').classList.toggle('on', s.music);
     $('opt-saver').classList.toggle('on', s.saver);
     $('opt-haptic').classList.toggle('on', s.haptic);
-    $('opt-speed').textContent = `글자 속도 · ${['느리게', '보통', '빠르게'][s.textSpeed === 0.6 ? 0 : s.textSpeed === 1 ? 1 : 2]}`;
+    $('opt-speed').textContent = tx(`글자 속도 · ${['느리게', '보통', '빠르게'][s.textSpeed === 0.6 ? 0 : s.textSpeed === 1 ? 1 : 2]}`);
     this.audio.sfxOn = s.sfx;
     this.audio.setMusicOn(s.music);
     this.ui.textSpeed = s.textSpeed;

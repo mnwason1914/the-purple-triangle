@@ -1,3 +1,5 @@
+import { tx } from '../text/tx';
+
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 export type ScreenId = 'title' | 'settings' | 'pause' | 'end' | null;
@@ -49,12 +51,12 @@ export class UI {
   }
 
   hud(v: boolean) { $('hud').hidden = !v; }
-  objective(text: string) { this.objectiveEl.textContent = text; }
+  objective(text: string) { this.objectiveEl.textContent = tx(text); }
   clock(text: string | null, late = false) {
     this.clockEl.hidden = text === null;
-    if (text !== null) { this.clockEl.textContent = text; this.clockEl.classList.toggle('late', late); }
+    if (text !== null) { this.clockEl.textContent = tx(text); this.clockEl.classList.toggle('late', late); }
   }
-  counter(text: string | null) { this.counterEl.hidden = text === null; if (text) this.counterEl.textContent = text; }
+  counter(text: string | null) { this.counterEl.hidden = text === null; if (text) this.counterEl.textContent = tx(text); }
   inventory(icons: string[]) {
     const key = icons.join('|');
     if (this.invEl.dataset.k === key) return;
@@ -63,14 +65,14 @@ export class UI {
     for (const src of icons) { const i = document.createElement('img'); i.src = src; this.invEl.appendChild(i); }
   }
 
-  toast(msg: string, secs = 2) { this.toastEl.textContent = msg; this.toastEl.hidden = false; this.toastT = secs; }
+  toast(msg: string, secs = 2) { this.toastEl.textContent = tx(msg); this.toastEl.hidden = false; this.toastT = secs; }
 
   fade(on: boolean) { this.fadeEl.classList.toggle('on', on); }
 
   /** Context button: null hides it. progress 0..1 for hold actions. */
   action(label: string | null, progress = 0) {
     this.act.hidden = label === null;
-    if (label !== null && this.actLabel.textContent !== label) this.actLabel.textContent = label;
+    if (label !== null) { const l = tx(label); if (this.actLabel.textContent !== l) this.actLabel.textContent = l; }
     this.ring.style.strokeDashoffset = String(289 * (1 - progress));
   }
 
@@ -81,7 +83,7 @@ export class UI {
     this.dname.textContent = name;
     if (portrait) this.portrait.src = portrait; else this.portrait.removeAttribute('src');
     this.dtext.classList.toggle('thought', thought);
-    this.full = text;
+    this.full = tx(text);
     this.shown = 0;
     this.dtext.textContent = '';
     return new Promise((r) => (this.lineDone = r));
@@ -104,7 +106,7 @@ export class UI {
     options.forEach((t, i) => {
       const b = document.createElement('button');
       b.className = 'choice';
-      b.textContent = t;
+      b.textContent = tx(t);
       b.addEventListener('click', (e) => { e.stopPropagation(); this.pick(i); });
       this.choicesEl.appendChild(b);
     });
@@ -128,7 +130,7 @@ export class UI {
   async card(html: string, hold = 2.6): Promise<void> {
     this.cardEl.hidden = false;
     this.syncOpen();
-    this.cardText.innerHTML = html;
+    this.cardText.innerHTML = tx(html);
     await new Promise((r) => setTimeout(r, 50));
     this.cardText.classList.add('on');
     await new Promise((r) => setTimeout(r, (hold + 1.2) * 1000));
@@ -150,8 +152,8 @@ export class UI {
   }
 
   end(title: string, text: string) {
-    $('end-title').textContent = title;
-    $('end-text').textContent = text;
+    $('end-title').textContent = tx(title);
+    $('end-text').textContent = tx(text);
     this.screen('end');
   }
 
