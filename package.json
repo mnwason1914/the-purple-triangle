@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "icons": "node scripts/gen-icons.mjs",
-    "test": "esbuild tests/sheet.ts --bundle --platform=node --outfile=tests/.sheet.cjs --log-level=warning && node tests/.sheet.cjs tests/art-sheet.png"
+    "test": "esbuild tests/sheet.ts --bundle --platform=node --outfile=tests/.sheet.cjs --log-level=warning && node tests/.sheet.cjs tests/art-sheet.png",
+    "deploy": "sh scripts/deploy.sh"
   },
   "dependencies": {
     "three": "0.170.0"
