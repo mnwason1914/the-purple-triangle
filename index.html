@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0a10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="보라색 삼각형" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <title>THE PURPLE TRIANGLE</title>
+</head>
+<body>
+  <div id="app">
+    <div id="stage">
+      <canvas id="game"></canvas>
+
+      <div id="hud" hidden>
+        <div id="objective"></div>
+        <div class="hud-right">
+          <div id="clock" hidden></div>
+          <div id="inventory"></div>
+          <button id="btn-pause" class="icon-btn" aria-label="일시정지">II</button>
+        </div>
+      </div>
+      <div id="counter" hidden></div>
+
+      <div id="dialog" hidden>
+        <img id="portrait" alt="" />
+        <div class="dbody">
+          <div id="dname"></div>
+          <div id="dtext"></div>
+        </div>
+        <div id="dnext">▼</div>
+      </div>
+      <div id="choices" hidden></div>
+
+      <div id="toast" hidden></div>
+      <div id="fade"></div>
+      <div id="card" hidden><div id="card-text"></div></div>
+
+      <div id="screen-title" class="screen">
+        <div class="panel">
+          <div class="triangle"></div>
+          <h1>THE PURPLE TRIANGLE</h1>
+          <p class="sub">보라색 삼각형 · 제1장 「12월」</p>
+          <div class="menu">
+            <button id="btn-continue" class="btn primary" hidden>이어하기</button>
+            <button id="btn-new" class="btn">새로 시작</button>
+            <button id="btn-settings" class="btn ghost">설정</button>
+          </div>
+        </div>
+      </div>
+      <div id="screen-settings" class="screen" hidden>
+        <div class="panel">
+          <h2>설정</h2>
+          <div class="menu">
+            <button id="opt-sfx" class="btn toggle">효과음</button>
+            <button id="opt-music" class="btn toggle">음악</button>
+            <button id="opt-speed" class="btn">글자 속도</button>
+            <button id="opt-saver" class="btn toggle">배터리 절약 (30 FPS)</button>
+            <button id="opt-haptic" class="btn toggle">진동</button>
+            <button id="opt-fullscreen" class="btn ghost" hidden>전체 화면</button>
+            <button id="btn-settings-back" class="btn">돌아가기</button>
+          </div>
+        </div>
+      </div>
+      <div id="screen-pause" class="screen" hidden>
+        <div class="panel">
+          <h2>일시정지</h2>
+          <div class="menu">
+            <button id="btn-resume" class="btn primary">계속하기</button>
+            <button id="btn-pause-settings" class="btn ghost">설정</button>
+            <button id="btn-quit" class="btn">타이틀로</button>
+          </div>
+          <p class="small">진행은 장면마다 자동 저장됩니다</p>
+        </div>
+      </div>
+      <div id="screen-end" class="screen" hidden>
+        <div class="panel">
+          <h2 id="end-title"></h2>
+          <p id="end-text"></p>
+          <div class="menu"><button id="btn-again" class="btn primary">처음부터</button><button id="btn-end-title" class="btn ghost">타이틀로</button></div>
+        </div>
+      </div>
+      <div id="rotate" hidden>
+        <div class="phone"></div>
+        <p>기기를 가로로 돌려 주세요</p>
+        <button id="btn-portrait" class="btn ghost">세로로 계속하기</button>
+      </div>
+      <div id="debug" hidden></div>
+    </div>
+
+    <div id="controls" aria-hidden="true">
+      <div id="pad"><div class="half"><span>◀</span></div><div class="half"><span>▶</span></div></div>
+      <div id="act" hidden><svg id="hold-ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg><span id="act-label">조사</span></div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
