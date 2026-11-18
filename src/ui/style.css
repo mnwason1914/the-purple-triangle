@@ -156,3 +156,49 @@ body.portrait-play #controls { flex: 1 1 auto; height: auto; min-height: 200px; 
 body.portrait-play #dialog { top: calc(100% + 8px); left: 12px; right: 12px; }
 body.portrait-play #choices { top: calc(100% + 120px); bottom: auto; left: 12px; right: 12px; width: auto; z-index: 5; }
 body.portrait-play #hud { top: 6px; }
+
+/* ===== First-person chapters ===== */
+body.fps #game, body.fps #pad { display: none !important; }
+#fps, #cine, #cine-video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+#cine, #cine-video { background: #000; object-fit: cover; z-index: 2; }
+#fps-controls { position: absolute; inset: 0; pointer-events: none; }
+#look-zone, #stick-zone { position: absolute; top: 0; bottom: 17%; pointer-events: auto; touch-action: none; }
+#stick-zone { left: 0; width: 42%; }
+#look-zone { right: 0; width: 58%; }
+body:not(.touch) #stick-zone { display: none; }
+body:not(.touch) #look-zone { left: 0; width: auto; bottom: 0; cursor: grab; }
+#stick {
+  position: absolute; left: calc(var(--sl) + 86px); top: calc(100% - 78px); width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%;
+  border: 2px solid rgba(239, 230, 214, 0.22); background: rgba(14, 10, 20, 0.28); opacity: 0.45; pointer-events: none; transition: opacity 0.15s;
+}
+#stick.on { opacity: 1; }
+#knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(239, 230, 214, 0.42); }
+#stick.run #knob { background: rgba(255, 190, 110, 0.75); }
+#btn-crouch {
+  position: absolute; right: calc(var(--sr) + 132px); bottom: calc(17% + 16px); width: 66px; height: 66px; border-radius: 50%; pointer-events: auto; touch-action: none;
+  background: rgba(14, 10, 20, 0.5); border: 2px solid rgba(239, 230, 214, 0.28); font-size: 12px; font-weight: 800; color: var(--ink);
+}
+#btn-crouch .c-on, #btn-crouch.on .c-off { display: none; }
+#btn-crouch.on .c-on { display: inline; }
+#btn-crouch.on { background: rgba(106, 70, 144, 0.75); }
+body:not(.touch) #btn-crouch { display: none; }
+body.fps #act { bottom: calc(16.7vh + 10px); }
+body.fps:not(.touch) #act { bottom: calc(16.7vh + 4px); }
+body.fps #clock, body.fps #inventory { display: none; }
+body.ui-open #btn-crouch { visibility: hidden; }
+#aim-label {
+  position: absolute; left: 50%; top: calc(41.5% + 12px); transform: translateX(-50%); padding: 2px 8px; border-radius: 4px; pointer-events: none;
+  font-size: 12px; font-weight: 700; color: #ffe2a8; background: rgba(10, 8, 14, 0.55); text-shadow: 0 1px 0 #000; white-space: nowrap;
+}
+#bark {
+  position: absolute; left: 50%; top: calc(var(--st) + 46px); transform: translateX(-50%); max-width: min(620px, 86%); padding: 7px 14px; border-radius: 8px;
+  background: rgba(16, 12, 22, 0.88); border: 1px solid #3a3046; font-size: clamp(13px, 1.2vw + 8px, 16px); line-height: 1.45; pointer-events: none;
+  opacity: 0; transition: opacity 0.25s; text-align: center;
+}
+#bark.on { opacity: 1; }
+#bark b { color: var(--accent); margin-right: 8px; font-size: 0.85em; }
+#bark b:empty { display: none; }
+#bark.thought #bark-text { color: #d6cce2; font-style: italic; }
+body.talking #bark { visibility: hidden; }
+.choice-timer { height: 5px; border-radius: 3px; background: var(--warm); transform-origin: left center; animation: shrink linear forwards; }
+@keyframes shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }

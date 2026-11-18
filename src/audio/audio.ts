@@ -5,7 +5,8 @@
  */
 export type Ambience = 'none' | 'room' | 'street' | 'tension' | 'stair';
 export type Sfx = 'step_wood' | 'step_stone' | 'step_snow' | 'knock' | 'knock_hard' | 'door' | 'paper' | 'hide' | 'pick' | 'blip'
-  | 'heart' | 'alert' | 'caught' | 'clock' | 'select' | 'whistle' | 'drop' | 'fire' | 'sew';
+  | 'heart' | 'alert' | 'caught' | 'clock' | 'select' | 'whistle' | 'drop' | 'fire' | 'sew'
+  | 'radio' | 'scrape' | 'creak' | 'wash' | 'tick' | 'unlock' | 'slam' | 'wipe' | 'screw';
 
 const N = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 
@@ -90,6 +91,15 @@ export class AudioSys {
       case 'whistle': this.tone(N(88), 0.5, 'sine', 0.06 * v, 0, undefined, N(86)); this.tone(N(88), 0.35, 'sine', 0.06 * v, 0.55); break;
       case 'fire': this.noise(0.8, 0.12 * v, 900, 0.5); this.noise(0.5, 0.08 * v, 2500, 2, 0.2); break;
       case 'sew': for (let i = 0; i < 10; i++) this.noise(0.03, 0.06 * v, 2200, 6, i * 0.09); break;
+      case 'radio': this.noise(1.6, 0.05 * v, 1800, 0.4); for (let i = 0; i < 6; i++) this.tone(180 + Math.random() * 120, 0.12, 'square', 0.012 * v, i * 0.22); break;
+      case 'scrape': for (let i = 0; i < 4; i++) { this.noise(0.09, 0.06 * v, 3200 + Math.random() * 1600, 9, i * 0.13); this.tone(1900 + Math.random() * 600, 0.05, 'square', 0.006 * v, i * 0.13); } break;
+      case 'creak': this.tone(140 + Math.random() * 40, 0.32, 'sawtooth', 0.035 * v, 0, undefined, 95); this.noise(0.25, 0.05 * v, 600, 4); break;
+      case 'wash': for (let i = 0; i < 5; i++) this.noise(0.22, 0.07 * v, 1200 + Math.random() * 900, 0.8, i * 0.2); break;
+      case 'tick': this.noise(0.015, 0.06 * v, 6000, 6); this.tone(2400, 0.02, 'square', 0.006 * v); break;
+      case 'unlock': this.tone(900, 0.05, 'square', 0.03 * v); this.noise(0.12, 0.2 * v, 1500, 3, 0.05); this.tone(300, 0.08, 'sine', 0.2 * v, 0.06); break;
+      case 'slam': this.tone(70, 0.4, 'sine', 0.6 * v); this.noise(0.3, 0.4 * v, 200, 0.7, 0, 'lowpass'); break;
+      case 'wipe': for (let i = 0; i < 4; i++) this.noise(0.12, 0.05 * v, 2600, 1.5, i * 0.16); break;
+      case 'screw': for (let i = 0; i < 5; i++) { this.noise(0.04, 0.05 * v, 4200, 8, i * 0.11); this.tone(2600, 0.02, 'square', 0.006 * v, i * 0.11); } break;
     }
   }
 
@@ -138,7 +148,7 @@ export class AudioSys {
 
   // ---------------------------------------------------------------- score
   /** Sparse motifs. Silence is part of the score: 'none' stops music. */
-  music(theme: 'title' | 'home' | 'sorrow' | 'none') {
+  music(theme: 'title' | 'home' | 'sorrow' | 'tense' | 'none') {
     if (!this.ctx) { this.musTheme = theme === 'none' ? null : theme; return; }
     if (theme === 'none' || !this.musicOn) {
       if (this.musTimer !== null) clearInterval(this.musTimer);
@@ -161,13 +171,18 @@ export class AudioSys {
       title: [[62, 2], [65, 1], [69, 3], [67, 1], [65, 1], [64, 2], [62, 4], [0, 2], [57, 2], [62, 1], [65, 3], [64, 1], [62, 1], [61, 4], [0, 4]],
       home: [[69, 1], [67, 1], [65, 2], [64, 1], [65, 1], [67, 4], [0, 2], [65, 1], [64, 1], [62, 2], [64, 2], [62, 4], [0, 6]],
       sorrow: [[62, 3], [61, 1], [62, 2], [57, 4], [0, 2], [58, 3], [57, 1], [55, 2], [57, 6], [0, 6]],
+      tense: [[38, 1], [0, 1], [38, 1], [0, 1], [41, 1], [0, 1], [38, 1], [37, 1], [38, 1], [0, 1], [38, 1], [0, 1], [44, 1], [0, 1], [43, 1], [41, 1]],
     };
     const seq = themes[this.musTheme];
-    const beat = 0.75;
+    const tense = this.musTheme === 'tense';
+    const beat = tense ? 0.36 : 0.75;
     while (this.musNext < c.currentTime + 0.5) {
       const [n, b] = seq[this.musStep % seq.length];
       const when = this.musNext - c.currentTime;
-      if (n) {
+      if (n && tense) {
+        this.tone(N(n), 0.32, 'triangle', 0.11, when, this.mus, N(n) * 0.98, 0.003);
+        this.tone(N(n + 12), 0.12, 'sine', 0.03, when, this.mus);
+      } else if (n) {
         this.tone(N(n), beat * b * 1.6, 'triangle', 0.05, when, this.mus, undefined, 0.01);
         this.tone(N(n + 12), beat * b * 0.6, 'sine', 0.015, when, this.mus);
         if (this.musStep % 4 === 0) this.tone(N(n - 24), beat * 4, 'sine', 0.04, when, this.mus);

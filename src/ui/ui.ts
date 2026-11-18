@@ -116,10 +116,20 @@ export class UI {
     return new Promise((r) => (this.choiceDone = r));
   }
 
+  /** Countdown bar under the options (seconds). */
+  choiceTimer(secs: number) {
+    const bar = document.createElement('div');
+    bar.className = 'choice-timer';
+    bar.style.animationDuration = `${secs}s`;
+    this.choicesEl.appendChild(bar);
+  }
+  /** Close the open choice without a pick (resolves with -1). */
+  cancelChoice() { if (this.choosing) this.pick(-1); }
+
   /** Keyboard / gamepad navigation for choices. */
   moveChoice(d: number) { if (!this.choosing) return; this.choiceSel = (this.choiceSel + d + this.choiceCount) % this.choiceCount; this.highlight(); }
   confirmChoice() { if (this.choosing) this.pick(this.choiceSel); }
-  private highlight() { [...this.choicesEl.children].forEach((c, i) => c.classList.toggle('sel', i === this.choiceSel)); }
+  private highlight() { [...this.choicesEl.querySelectorAll('.choice')].forEach((c, i) => c.classList.toggle('sel', i === this.choiceSel)); }
   private pick(i: number) {
     this.choicesEl.hidden = true;
     const r = this.choiceDone; this.choiceDone = null;

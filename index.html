@@ -18,6 +18,16 @@
   <div id="app">
     <div id="stage">
       <canvas id="game"></canvas>
+      <canvas id="fps"></canvas>
+      <canvas id="cine" hidden></canvas>
+      <video id="cine-video" playsinline preload="auto" hidden></video>
+      <div id="fps-controls" aria-hidden="true" hidden>
+        <div id="look-zone"></div>
+        <div id="stick-zone"><div id="stick"><div id="knob"></div></div></div>
+        <button id="btn-crouch" class="round" aria-label="웅크리기"><span class="c-off">웅크리기</span><span class="c-on">일어서기</span></button>
+      </div>
+      <div id="aim-label" hidden></div>
+      <div id="bark" hidden><b id="bark-name"></b><span id="bark-text"></span></div>
 
       <div id="hud" hidden>
         <div id="objective"></div>
@@ -47,7 +57,7 @@
         <div class="panel">
           <div class="triangle"></div>
           <h1>THE PURPLE TRIANGLE</h1>
-          <p class="sub">보라색 삼각형 · 제1장 「12월」</p>
+          <p class="sub">보라색 삼각형 · 제1장 「가방 속의 소책자」</p>
           <div class="menu">
             <button id="btn-continue" class="btn primary" hidden>이어하기</button>
             <button id="btn-new" class="btn">새로 시작</button>

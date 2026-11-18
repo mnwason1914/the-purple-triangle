@@ -1,6 +1,6 @@
 import './ui/style.css';
-import { Game } from './game/game';
-import { Chapter1, titleScene } from './data/chapter1';
+import { FpsGame } from './fps/game';
+import { Chapter1 } from './fps/chapter1';
 import { Save } from './systems/save';
 import { txDom } from './text/tx';
 
@@ -8,17 +8,9 @@ const $ = (id: string) => document.getElementById(id)!;
 
 function boot() {
   txDom();
-  let game: Game;
-  try {
-    game = new Game();
-  } catch (err) {
-    console.error(err);
-    document.body.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#efe6d6;background:#0c0a10;font:16px system-ui">이 기기에서 그래픽을 시작할 수 없어요. 브라우저를 최신 버전으로 업데이트해 주세요.</div>';
-    return;
-  }
-  game.run(Chapter1);
-  game.toTitle(titleScene(game));
-  (window as unknown as { game: Game }).game = game;
+  const game = new FpsGame();
+  (window as unknown as { game: FpsGame }).game = game;
+  void game.init(Chapter1).then(() => game.toTitle());
 
   let settingsBack: 'title' | 'pause' = 'title';
   const click = (id: string, fn: () => void) => $(id).addEventListener('click', (e) => { e.stopPropagation(); game.audio.unlock(); game.audio.play('select'); fn(); });
@@ -29,9 +21,9 @@ function boot() {
   click('btn-settings-back', () => game.ui.screen(settingsBack));
   click('btn-pause', () => game.pause());
   click('btn-resume', () => game.resume());
-  click('btn-quit', () => { game.save(); game.toTitle(titleScene(game)); });
+  click('btn-quit', () => { game.save(); game.toTitle(); });
   click('btn-again', () => { Save.clear(); game.newGame(); });
-  click('btn-end-title', () => game.toTitle(titleScene(game)));
+  click('btn-end-title', () => game.toTitle());
   const toggle = (id: string, k: 'sfx' | 'music' | 'saver' | 'haptic') => click(id, () => { game.settings[k] = !game.settings[k]; Save.storeSettings(game.settings); game.applySettings(); if (k === 'music' && game.settings.music && game.state === 'title') game.audio.music('title'); });
   toggle('opt-sfx', 'sfx'); toggle('opt-music', 'music'); toggle('opt-saver', 'saver'); toggle('opt-haptic', 'haptic');
   click('opt-speed', () => { const sp = [0.6, 1, 1.8]; game.settings.textSpeed = sp[(sp.indexOf(game.settings.textSpeed) + 1) % 3]; Save.storeSettings(game.settings); game.applySettings(); });
