@@ -3,7 +3,7 @@
  * (cut_1_intro.mp4 / cut_1_outro.mp4, e.g. made with Google Flow) it plays; otherwise a painted
  * pixel-art shot is animated for the same four seconds. Tap skips after one second.
  */
-import { VIDEOS } from './assets';
+import { ART, OVERRIDDEN, VIDEOS } from './assets';
 import { C, Pix, hash, lit, mixc } from './pix';
 import * as A from './art';
 
@@ -131,18 +131,21 @@ export async function outro(withBag: boolean) {
   for (let y = 10; y < 132; y++) for (let x = 38; x < 92; x++) base.set(x, y, lit(C('#8e8a82'), 0.8 + hash(x >> 3, y >> 3) * 0.3));
   base.rect(32, 6, 66, 8, '#a8a49c');
   for (let y = 40; y < 120; y++) for (let x = 92; x < W; x++) base.set(x, y, ((x >> 3) + (y >> 2)) % 2 ? '#8a4a36' : '#7a4232');
-  const kid = A.person(withBag ? A.LOOK.leni_bag : A.LOOK.leni);
-  const big = new Pix(kid.w * 4, kid.h * 4);
-  for (let y = 0; y < big.h; y++) for (let x = 0; x < big.w; x++) big.px[y * big.w + x] = kid.px[(y >> 2) * kid.w + (x >> 2)];
-  // smile looking up
-  big.rect(26, 30, 12, 4, '#f0cfb0'); big.rect(27, 32, 10, 2, '#b8665a'); big.rect(25, 30, 2, 2, '#b8665a'); big.rect(37, 30, 2, 2, '#b8665a');
+  const name = withBag ? 'spr_leni_bag' : 'spr_leni';
+  const drawn = OVERRIDDEN.has(name);
+  const kid = drawn ? ART[name] : A.person(withBag ? A.LOOK.leni_bag : A.LOOK.leni);
+  const k = Math.max(1, Math.floor(124 / kid.h));
+  const big = new Pix(kid.w * k, kid.h * k);
+  for (let y = 0; y < big.h; y++) for (let x = 0; x < big.w; x++) big.px[y * big.w + x] = kid.px[Math.floor(y / k) * kid.w + Math.floor(x / k)];
+  // painted version: a smile looking up
+  if (!drawn) { big.rect(26, 30, 12, 4, '#f0cfb0'); big.rect(27, 32, 10, 2, '#b8665a'); big.rect(25, 30, 2, 2, '#b8665a'); big.rect(37, 30, 2, 2, '#b8665a'); }
   const bc = big.canvas(), bg = base.canvas();
   await play((ctx, t) => {
     ctx.drawImage(bg, 0, 0);
     ctx.fillStyle = 'rgba(40,20,10,0.35)';
     ctx.beginPath(); ctx.ellipse(150 + t * 30, 168, 40 + t * 40, 6, 0, 0, Math.PI * 2); ctx.fill();
     const sway = Math.sin(t * 9) > 0 ? 1 : 0;
-    ctx.drawImage(bc, 118 + sway, H - bc.height - 4);
+    ctx.drawImage(bc, 150 - (bc.width >> 1) + sway, H - bc.height - 4);
     ctx.fillStyle = `rgba(255,190,110,${0.12 + Math.sin(t * 3) * 0.03})`;
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = `rgba(0,0,0,${Math.max(0, 1 - t * 5) + Math.max(0, t - 0.8) * 5})`;

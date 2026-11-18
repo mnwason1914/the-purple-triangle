@@ -15,6 +15,8 @@ export const VIDEOS = new Set<string>();
 export const OVERRIDDEN = new Set<string>();
 /** Painted-size copies of replaced objects for the hands and the status bar. */
 export const ICON: Record<string, Pix> = {};
+/** Painted pixel size of every entry (hands and faces may be replaced by finer art). */
+export const PAINTED: Record<string, [number, number]> = {};
 export const icon = (name: string) => ICON[name] ?? ART[name];
 /** Use frame b with a only if both come from the same source (no painted/drawn mix). */
 export const same = (a: string, b: string) => !!ART[b] && OVERRIDDEN.has(a) === OVERRIDDEN.has(b);
@@ -64,6 +66,7 @@ function facade(): Pix {
 export function buildArt() {
   for (const [k, f] of Object.entries(SPRITES)) { const p = f(); ART[k] = p; SIZE[k] = [p.w / TEXEL, p.h / TEXEL]; }
   for (const [k, f] of Object.entries(OTHER)) ART[k] = f();
+  for (const [k, p] of Object.entries(ART)) PAINTED[k] = [p.w, p.h];
 }
 
 /** Load hand-made replacements listed in the manifest. Missing manifest = all code art. */
@@ -81,10 +84,9 @@ export async function loadOverrides(base = 'assets/ch1/', onAudio?: (key: string
     img.onload = () => {
       try {
         const cut = /^(spr|obj|hand)_/.test(name);
-        // hands and faces are drawn pixel-for-pixel: fit them to the painted size
-        if (painted && /^(hand|hud|face)_/.test(name)) ART[name] = Pix.from(img, painted.w, painted.h, cut);
-        else ART[name] = Pix.from(img, undefined, undefined, cut);
-        if (painted && name.startsWith('obj_')) ICON[name] = Pix.from(img, painted.w, painted.h, true);
+        ART[name] = Pix.from(img, undefined, undefined, cut);
+        // status-bar and in-hand copies at the painted size
+        if (painted && /^(obj|hud|face)_/.test(name)) ICON[name] = Pix.from(img, painted.w, painted.h, true);
         OVERRIDDEN.add(name);
       } catch { /* keep painted */ }
       done();

@@ -27,7 +27,7 @@ npm test          # renders tests/art-sheet.png (all characters, poses, portrait
 
 ## Tech notes
 - **First-person renderer** (`src/fps/render.ts`): 180 px tall internal frame (150 view + 30 status bar), width follows the screen. DDA walls, per-pixel floor/ceiling casting, bilinear light map with line-of-sight lights, z-buffered billboards. About 1.4 ms per frame on a laptop.
-- **Art overrides**: `public/assets/ch1/manifest.json` lists PNG/MP4 files that replace the code-painted art and cuts by name.
+- **Art**: chapter 1 uses 69 images generated with Codex CLI (`art-src/ch1/briefs`, `art-src/ch1/run.sh`), cut, keyed and shrunk by `scripts/art-process.mjs` into `public/assets/ch1` (about 1 MB). `manifest.json` there lists every replacement; anything not listed falls back to the code-painted art. Videos (Google Flow) and sounds can be listed the same way.
 - **Integer pixel scaling** (2D chapter): the minimum view is 240×144 world px and DPR is capped at 2 (1.5 in battery saver). Camera edges are snapped to device pixels.
 - **Art**: all art is painted in code. Characters are 16×32 sprites with 12 poses each (`src/characters/painter.ts`). Portraits are 32×32 with 7 expressions. Props are packed into one 1024² atlas, and each scene backdrop is one texture. There are no external assets, so there is no licensing exposure.
 - **Lighting**: night uses one full-screen shader with up to 16 point/cone lights. Falloff is posterised per world pixel (`src/engine/lighting.ts`), and the same light model drives stealth detection.

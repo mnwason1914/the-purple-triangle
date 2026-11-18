@@ -8,7 +8,7 @@ import { Director } from '../systems/director';
 import { Save, type Settings } from '../systems/save';
 import { tx } from '../text/tx';
 import { UI } from '../ui/ui';
-import { ART, SIZE, buildArt, icon, loadOverrides, same } from './assets';
+import { ART, PAINTED, SIZE, buildArt, icon, loadOverrides, same } from './assets';
 import { FpsInput } from './input';
 import { Level } from './level';
 import type { Pix } from './pix';
@@ -342,7 +342,7 @@ export class FpsGame {
     const t = this.timer;
     const s = Math.max(0, Math.ceil(t.left));
     const time = t.running || t.left > 0 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '-:--';
-    return { time, late: t.running && t.left <= 20, progress: this.progress, face: ART[this.faceKey()], item: this.holding ? icon(ITEM_ART[this.holding]) ?? null : icon('obj_rag'), crouch: this.crouch, aim: !!this.aim, flash: this.flashT };
+    return { time, late: t.running && t.left <= 20, progress: this.progress, face: icon(this.faceKey()), item: this.holding ? icon(ITEM_ART[this.holding]) ?? null : icon('obj_rag'), crouch: this.crouch, aim: !!this.aim, flash: this.flashT };
   }
 
   private drawHands(r: Renderer, _buf: Uint32Array) {
@@ -350,15 +350,18 @@ export class FpsGame {
     const bx = Math.round(Math.sin(this.bob) * 2 * s), by = Math.round(Math.abs(Math.cos(this.bob)) * 2 * s) + (this.crouch ? 2 * s : 0);
     const k = Math.max(110, Math.min(300, (this.level.light(this.px, this.py) * 300) | 0));
     const W = r.W, VH = r.VH;
-    if (!this.holding) r.blit(ART.hand_idle, W - 34 * s - 4 + bx, VH - 30 * s + by, s, k);
-    else if (this.holding === 'screwdriver') r.blit(ART.hand_screwdriver, W - 34 * s - 4 + bx, VH - 30 * s + by, s, k);
+    // finer replacement art is drawn at a smaller scale so it covers the same area
+    const hand = (n: string, x: number, y: number) => { const p = ART[n]; r.blit(p, x, y, Math.max(1, Math.round((s * (PAINTED[n]?.[0] ?? p.w)) / p.w)), k); };
+    if (!this.holding) hand('hand_idle', W - 34 * s - 4 + bx, VH - 30 * s + by);
+    else if (this.holding === 'screwdriver') hand('hand_screwdriver', W - 34 * s - 4 + bx, VH - 30 * s + by);
     else {
-      const it = icon(ITEM_ART[this.holding]);
-      const sc = s * (it.w > 13 ? 2 : 3);
+      // native art (finer if replaced), scaled to about a fifth of the view height
+      const it = ART[ITEM_ART[this.holding]];
+      const sc = Math.max(1, Math.round((VH * 0.22) / it.h));
       const ix = (W >> 1) - ((it.w * sc) >> 1) + bx, iy = VH - it.h * sc - 6 * s + by;
-      r.blit(ART.hand_l, ix - 18 * s, iy + it.h * sc - 14 * s, s, k);
+      hand('hand_l', ix - 18 * s, iy + it.h * sc - 14 * s);
       r.blit(it, ix, iy, sc, k);
-      r.blit(ART.hand_r, ix + it.w * sc - 12 * s, iy + it.h * sc - 14 * s, s, k);
+      hand('hand_r', ix + it.w * sc - 12 * s, iy + it.h * sc - 14 * s);
     }
   }
 
