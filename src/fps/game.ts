@@ -8,7 +8,7 @@ import { Director } from '../systems/director';
 import { Save, type Settings } from '../systems/save';
 import { tx } from '../text/tx';
 import { UI } from '../ui/ui';
-import { ART, SIZE, buildArt, loadOverrides } from './assets';
+import { ART, SIZE, buildArt, icon, loadOverrides, same } from './assets';
 import { FpsInput } from './input';
 import { Level } from './level';
 import type { Pix } from './pix';
@@ -60,7 +60,8 @@ export class Actor {
     if (d <= st) { this.sp.x = tx; this.sp.y = ty; this.path.shift(); }
     else { this.sp.x += (dx / d) * st; this.sp.y += (dy / d) * st; }
     this.phase += dt * 5.5;
-    const f = ART[`${this.base}_w${1 + (Math.floor(this.phase) % 2)}`];
+    const wn = `${this.base}_w${1 + (Math.floor(this.phase) % 2)}`;
+    const f = same(this.base, wn) ? ART[wn] : null;
     this.sp.tex = Math.floor(this.phase * 2) % 2 && f ? f : ART[this.base];
   }
 }
@@ -129,7 +130,7 @@ export class FpsGame {
 
   async init(ch: FpsChapter) {
     this.chapter = ch;
-    await loadOverrides();
+    await loadOverrides('assets/ch1/', (k, d) => this.audio.addFile(k, d));
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -297,7 +298,7 @@ export class FpsGame {
   faceKey() {
     if (this.composure >= 60) return 'hud_paul_calm';
     if (this.composure >= 30) return 'hud_paul_tense';
-    return Math.floor(performance.now() / 140) % 2 ? 'hud_paul_panic2' : 'hud_paul_panic';
+    return Math.floor(performance.now() / 140) % 2 && same('hud_paul_panic', 'hud_paul_panic2') ? 'hud_paul_panic2' : 'hud_paul_panic';
   }
 
   // ================================================================ loop
@@ -341,7 +342,7 @@ export class FpsGame {
     const t = this.timer;
     const s = Math.max(0, Math.ceil(t.left));
     const time = t.running || t.left > 0 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '-:--';
-    return { time, late: t.running && t.left <= 20, progress: this.progress, face: ART[this.faceKey()], item: this.holding ? ART[ITEM_ART[this.holding]] ?? null : ART.obj_rag, crouch: this.crouch, aim: !!this.aim, flash: this.flashT };
+    return { time, late: t.running && t.left <= 20, progress: this.progress, face: ART[this.faceKey()], item: this.holding ? icon(ITEM_ART[this.holding]) ?? null : icon('obj_rag'), crouch: this.crouch, aim: !!this.aim, flash: this.flashT };
   }
 
   private drawHands(r: Renderer, _buf: Uint32Array) {
@@ -352,7 +353,7 @@ export class FpsGame {
     if (!this.holding) r.blit(ART.hand_idle, W - 34 * s - 4 + bx, VH - 30 * s + by, s, k);
     else if (this.holding === 'screwdriver') r.blit(ART.hand_screwdriver, W - 34 * s - 4 + bx, VH - 30 * s + by, s, k);
     else {
-      const it = ART[ITEM_ART[this.holding]];
+      const it = icon(ITEM_ART[this.holding]);
       const sc = s * (it.w > 13 ? 2 : 3);
       const ix = (W >> 1) - ((it.w * sc) >> 1) + bx, iy = VH - it.h * sc - 6 * s + by;
       r.blit(ART.hand_l, ix - 18 * s, iy + it.h * sc - 14 * s, s, k);

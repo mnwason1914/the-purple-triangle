@@ -28,12 +28,27 @@ export class AudioSys {
   private musStep = 0;
   private musNext = 0;
 
+  private files = new Map<string, ArrayBuffer>();
+  private bufs = new Map<string, AudioBuffer>();
+  private musSrc: AudioBufferSourceNode | null = null;
+  private musFile: string | null = null;
+
+  /** Recorded sound replacing a synthesised one: key = Sfx name or 'bgm_<theme>'. */
+  addFile(key: string, data: ArrayBuffer) { this.files.set(key, data); if (this.ctx) this.decode(key); }
+  private decode(key: string) {
+    const d = this.files.get(key);
+    if (!d || !this.ctx) return;
+    this.ctx.decodeAudioData(d.slice(0)).then((b) => { this.bufs.set(key, b); if (key === `bgm_${this.musTheme}`) { const t = this.musTheme as 'tense'; this.musTheme = null; this.music(t); } }).catch(() => {});
+  }
+  private stopMusicFile() { try { this.musSrc?.stop(); } catch { /* */ } this.musSrc = null; this.musFile = null; }
+
   unlock() {
     if (!this.ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AC) return;
       const ctx = new AC({ latencyHint: 'interactive' });
       this.ctx = ctx;
+      queueMicrotask(() => { for (const k of this.files.keys()) this.decode(k); });
       this.master = ctx.createGain(); this.master.gain.value = 0.9; this.master.connect(ctx.destination);
       this.sfx = ctx.createGain(); this.sfx.connect(this.master);
       this.mus = ctx.createGain(); this.mus.gain.value = 0.5; this.mus.connect(this.master);
@@ -71,6 +86,13 @@ export class AudioSys {
   play(name: Sfx, vol = 1) {
     if (!this.sfxOn || !this.ok) return;
     const v = vol;
+    const rec = this.bufs.get(name);
+    if (rec) {
+      const s = this.ctx!.createBufferSource(); s.buffer = rec;
+      const g = this.ctx!.createGain(); g.gain.value = Math.min(1.5, v);
+      s.connect(g); g.connect(this.sfx); s.start();
+      return;
+    }
     switch (name) {
       case 'step_wood': this.noise(0.06, 0.12 * v, 500 + Math.random() * 200, 2); this.tone(110, 0.05, 'sine', 0.05 * v); break;
       case 'step_stone': this.noise(0.05, 0.09 * v, 1800 + Math.random() * 400, 3); break;
@@ -150,6 +172,16 @@ export class AudioSys {
   /** Sparse motifs. Silence is part of the score: 'none' stops music. */
   music(theme: 'title' | 'home' | 'sorrow' | 'tense' | 'none') {
     if (!this.ctx) { this.musTheme = theme === 'none' ? null : theme; return; }
+    const file = this.bufs.get(`bgm_${theme}`);
+    if (this.musFile && this.musFile !== theme) this.stopMusicFile();
+    if (file && this.musicOn) {
+      if (this.musTimer !== null) clearInterval(this.musTimer);
+      this.musTimer = null; this.musTheme = theme;
+      if (this.musFile === theme) return;
+      const s = this.ctx.createBufferSource(); s.buffer = file; s.loop = true; s.connect(this.mus); s.start();
+      this.musSrc = s; this.musFile = theme;
+      return;
+    }
     if (theme === 'none' || !this.musicOn) {
       if (this.musTimer !== null) clearInterval(this.musTimer);
       this.musTimer = null; this.musTheme = theme === 'none' ? null : theme; return;

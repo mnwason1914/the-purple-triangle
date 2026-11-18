@@ -11,6 +11,19 @@ export const ART: Record<string, Pix> = {};
 /** World size (w, h) of sprites, from the painted default. */
 export const SIZE: Record<string, [number, number]> = {};
 export const VIDEOS = new Set<string>();
+/** Names replaced by a file. */
+export const OVERRIDDEN = new Set<string>();
+/** Painted-size copies of replaced objects for the hands and the status bar. */
+export const ICON: Record<string, Pix> = {};
+export const icon = (name: string) => ICON[name] ?? ART[name];
+/** Use frame b with a only if both come from the same source (no painted/drawn mix). */
+export const same = (a: string, b: string) => !!ART[b] && OVERRIDDEN.has(a) === OVERRIDDEN.has(b);
+
+/** Recorded sound file names (spec) → game sound names. */
+const SOUND_ALIAS: Record<string, string> = {
+  bgm_workshop_tense: 'bgm_tense', sfx_radio_static: 'radio', sfx_door_knock: 'knock_hard', sfx_lockpick_scrape: 'scrape',
+  sfx_wood_creak: 'creak', sfx_water_wash: 'wash',
+};
 
 const SPRITES: Record<string, () => Pix> = {
   spr_helena: () => A.person(A.LOOK.helena),
@@ -54,18 +67,39 @@ export function buildArt() {
 }
 
 /** Load hand-made replacements listed in the manifest. Missing manifest = all code art. */
-export async function loadOverrides(base = 'assets/ch1/') {
-  let list: { images?: string[]; videos?: string[] } = {};
+export async function loadOverrides(base = 'assets/ch1/', onAudio?: (key: string, data: ArrayBuffer) => void) {
+  let list: { images?: string[]; videos?: string[]; audio?: string[] } = {};
   try {
     const r = await fetch(`${base}manifest.json`, { cache: 'no-cache' });
     if (r.ok) list = await r.json();
   } catch { return; }
   for (const v of list.videos ?? []) VIDEOS.add(v);
-  await Promise.all((list.images ?? []).map((file) => new Promise<void>((done) => {
-    const name = file.replace(/\.png$/i, '');
+  const images = (list.images ?? []).map((file) => new Promise<void>((done) => {
+    const name = file.replace(/\.(png|webp|jpe?g)$/i, '');
+    const painted = ART[name];
     const img = new Image();
-    img.onload = () => { try { ART[name] = Pix.from(img); } catch { /* keep painted */ } done(); };
+    img.onload = () => {
+      try {
+        const cut = /^(spr|obj|hand)_/.test(name);
+        // hands and faces are drawn pixel-for-pixel: fit them to the painted size
+        if (painted && /^(hand|hud|face)_/.test(name)) ART[name] = Pix.from(img, painted.w, painted.h, cut);
+        else ART[name] = Pix.from(img, undefined, undefined, cut);
+        if (painted && name.startsWith('obj_')) ICON[name] = Pix.from(img, painted.w, painted.h, true);
+        OVERRIDDEN.add(name);
+      } catch { /* keep painted */ }
+      done();
+    };
     img.onerror = () => done();
     img.src = `${base}${file}`;
-  })));
+  }));
+  const sounds = (list.audio ?? []).map(async (file) => {
+    try {
+      const r = await fetch(`${base}${file}`);
+      if (!r.ok) return;
+      const stem = file.replace(/\.[a-z0-9]+$/i, '');
+      const key = SOUND_ALIAS[stem] ?? stem.replace(/^sfx_/, '');
+      onAudio?.(key, await r.arrayBuffer());
+    } catch { /* keep synthesised */ }
+  });
+  await Promise.all([...images, ...sounds]);
 }

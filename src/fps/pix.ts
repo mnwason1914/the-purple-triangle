@@ -101,12 +101,31 @@ export class Pix {
     sx.drawImage(c, 0, 0, s.width, s.height);
     return s;
   }
-  static from(img: HTMLImageElement | HTMLCanvasElement, w?: number, h?: number): Pix {
+  /**
+   * Image → Pix, optionally resampled to w×h. keyed: an image without transparency gets its
+   * corner colour (e.g. a flat #00FF00 backdrop) knocked out.
+   */
+  static from(img: HTMLImageElement | HTMLCanvasElement, w?: number, h?: number, keyed = false): Pix {
     const W = w ?? img.width, H = h ?? img.height;
+    const src = document.createElement('canvas'); src.width = img.width; src.height = img.height;
+    const sctx = src.getContext('2d')!;
+    sctx.drawImage(img, 0, 0);
+    if (keyed) {
+      const id = sctx.getImageData(0, 0, src.width, src.height);
+      const d = new Uint32Array(id.data.buffer);
+      if (d.every((c) => c >>> 24 === 255)) {
+        const k = d[0], kr = k & 255, kg = (k >>> 8) & 255, kb = (k >>> 16) & 255;
+        for (let i = 0; i < d.length; i++) {
+          const c = d[i];
+          if (Math.abs((c & 255) - kr) + Math.abs(((c >>> 8) & 255) - kg) + Math.abs(((c >>> 16) & 255) - kb) < 90) d[i] = 0;
+        }
+        sctx.putImageData(id, 0, 0);
+      }
+    }
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const ctx = c.getContext('2d')!;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, 0, 0, W, H);
+    ctx.imageSmoothingEnabled = W < img.width;
+    ctx.drawImage(src, 0, 0, W, H);
     const p = new Pix(W, H);
     const d = new Uint32Array(ctx.getImageData(0, 0, W, H).data.buffer);
     for (let i = 0; i < d.length; i++) p.px[i] = (d[i] >>> 24) > 127 ? (d[i] | 0xff000000) >>> 0 : 0;
