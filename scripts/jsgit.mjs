@@ -33,6 +33,11 @@ if (cmd === 'commit') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-pages-'));
   // Godot build is the main game; the older TypeScript build stays reachable under /classic/.
   fs.cpSync('dist-godot', dir, { recursive: true });
+  // Give the engine files a new name on every deploy so phones never mix a cached old build with a new page.
+  const v = 'g' + Date.now().toString(36);
+  for (const f of fs.readdirSync(dir)) if (f.startsWith('index.') && f !== 'index.html') fs.renameSync(path.join(dir, f), path.join(dir, v + f.slice(5)));
+  const html = path.join(dir, 'index.html');
+  fs.writeFileSync(html, fs.readFileSync(html, 'utf8').replace(/"executable":"index"/, `"executable":"${v}"`).replace(/\bindex\.(?=[a-z])(?!html)/g, v + '.'));
   fs.cpSync('dist', path.join(dir, 'classic'), { recursive: true });
   // Phones that opened the old site have its service worker installed at the root. Replace it with
   // one that clears the old caches and removes itself, so they load the Godot build fresh.

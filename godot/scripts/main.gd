@@ -124,6 +124,7 @@ func _ready() -> void:
 	chapter = Chapter1.new()
 	_apply_settings()
 	ui.set_touch_mode(_is_mobile_web())
+	_setup_js_touch()
 	get_viewport().size_changed.connect(_on_resize)
 	_on_resize()
 	to_title()
@@ -816,6 +817,12 @@ func _input(event: InputEvent) -> void:
 		elif not event.pressed:
 			_keys.erase(code)
 		return
+	if event is InputEventScreenTouch and _js_touch:
+		if not ui._touch_mode:
+			ui.set_touch_mode(true)
+		return
+	if event is InputEventScreenDrag and _js_touch:
+		return
 	if event is InputEventScreenTouch:
 		if not ui._touch_mode:
 			ui.set_touch_mode(true)
@@ -922,7 +929,63 @@ func _edge(what: String) -> bool:
 	return false
 
 
+## On the web, touches are read straight from the browser's pointer events (Safari on iPhone did
+## not move the stick through the engine's own touch events). The page queues
+## [kind, id, x, y] with x, y as fractions of the canvas; kind 0 = down, 1 = up, 2 = move.
+var _js_touch := false
+const JS_TOUCH := """
+(function () {
+  if (window.__pq) return;
+  var q = window.__pq = [];
+  var c = document.querySelector('canvas');
+  c.style.touchAction = 'none';
+  document.body.style.touchAction = 'none';
+  function at(e) { var r = c.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; }
+  function push(k, e) { if (e.pointerType === 'mouse') return; var p = at(e); q.push([k, e.pointerId, p[0], p[1]]); if (q.length > 200) q.splice(0, q.length - 200); }
+  c.addEventListener('pointerdown', function (e) { push(0, e); try { c.setPointerCapture(e.pointerId); } catch (_) {} }, true);
+  c.addEventListener('pointermove', function (e) { push(2, e); }, true);
+  c.addEventListener('pointerup', function (e) { push(1, e); }, true);
+  c.addEventListener('pointercancel', function (e) { push(1, e); }, true);
+})();
+"""
+
+
+func _setup_js_touch() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval(JS_TOUCH, true)
+	_js_touch = true
+
+
+func _poll_js_touch() -> void:
+	if not _js_touch:
+		return
+	var raw = JavaScriptBridge.eval("JSON.stringify(window.__pq.splice(0))", true)
+	if not (raw is String) or raw == "[]":
+		return
+	var list = JSON.parse_string(raw)
+	if not (list is Array):
+		return
+	for it in list:
+		var pos := Vector2(float(it[2]) * ui.size.x, float(it[3]) * ui.size.y)
+		var id := int(it[1])
+		if int(it[0]) == 2:
+			var d := InputEventScreenDrag.new()
+			d.index = id
+			d.position = pos
+			_drag(d)
+		else:
+			if not ui._touch_mode:
+				ui.set_touch_mode(true)
+			var t := InputEventScreenTouch.new()
+			t.index = id
+			t.position = pos
+			t.pressed = int(it[0]) == 0
+			_touch(t)
+
+
 func _read_input() -> void:
+	_poll_js_touch()
 	var m := Vector2.ZERO
 	var turn := 0.0
 	if _k(KEY_W) or _k(KEY_UP):
