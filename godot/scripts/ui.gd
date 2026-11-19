@@ -51,7 +51,8 @@ var dname: Label
 var dtext: Label
 var dnext: Label
 var choices_box: VBoxContainer
-var choice_bar: ColorRect
+var choice_bar: NinePatchRect
+var choice_fill: TextureRect
 var fade_rect: ColorRect
 var card: ColorRect
 var card_text: RichTextLabel
@@ -202,32 +203,45 @@ func _label(parent: Control, size: int, color: Color, is_bold := false) -> Label
 	return l
 
 
-static func box(bg: Color, border := Color(0, 0, 0, 0), radius := 8, pad := Vector4(12, 8, 12, 8), bw := 1) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.border_color = border
-	if border.a > 0:
-		s.set_border_width_all(bw)
-	s.set_corner_radius_all(radius)
+## Interface art made with Codex CLI (art-src/ui → godot/assets/ui, stored at 2×).
+static var _ui_cache: Dictionary = {}
+
+
+static func ui_tex(name: String) -> Texture2D:
+	if not _ui_cache.has(name):
+		_ui_cache[name] = load("res://assets/ui/%s.png" % name)
+	return _ui_cache[name]
+
+
+## A stretchable plate from one of the interface images; `margin` (texture pixels) stays unstretched.
+static func plate(name: String, margin: int, pad := Vector4(12, 8, 12, 8), tint := Color.WHITE) -> StyleBoxTexture:
+	var s := StyleBoxTexture.new()
+	s.texture = ui_tex(name)
+	s.texture_margin_left = margin
+	s.texture_margin_top = margin
+	s.texture_margin_right = margin
+	s.texture_margin_bottom = margin
 	s.content_margin_left = pad.x
 	s.content_margin_top = pad.y
 	s.content_margin_right = pad.z
 	s.content_margin_bottom = pad.w
+	s.modulate_color = tint
 	return s
 
 
 func _button(parent: Control, text: String, id: String, kind := "") -> Button:
 	var b := Button.new()
 	b.text = Tx.t(text)
-	b.custom_minimum_size = Vector2(240, 46)
+	b.custom_minimum_size = Vector2(240, 50)
 	b.add_theme_font_override("font", bold)
 	b.add_theme_font_size_override("font_size", 17)
-	var bg := Color("5a3a7a") if kind == "primary" else Color(0, 0, 0, 0) if kind == "ghost" else Color("231b2e")
-	var bd := ACCENT if kind == "primary" else Color("4a3c5a")
-	b.add_theme_stylebox_override("normal", box(bg, bd, 10))
-	b.add_theme_stylebox_override("hover", box(bg.lightened(0.12), ACCENT, 10))
-	b.add_theme_stylebox_override("pressed", box(Color("3e2e52"), ACCENT, 10))
-	b.add_theme_stylebox_override("focus", box(Color(0, 0, 0, 0), ACCENT, 10, Vector4(12, 8, 12, 8), 2))
+	var art := "ui_btn_primary" if kind == "primary" else "ui_btn_plain"
+	var dim := Color(1, 1, 1, 0.82) if kind == "ghost" else Color.WHITE
+	var pad := Vector4(18, 10, 18, 10)
+	b.add_theme_stylebox_override("normal", plate(art, 14, pad, dim))
+	b.add_theme_stylebox_override("hover", plate(art, 14, pad, Color(1.18, 1.14, 1.1)))
+	b.add_theme_stylebox_override("pressed", plate(art + "_pressed", 14, pad))
+	b.add_theme_stylebox_override("focus", plate(art + "_pressed", 14, pad, Color(1, 1, 1, 0.35)))
 	b.add_theme_color_override("font_color", INK)
 	b.add_theme_color_override("font_hover_color", INK)
 	b.add_theme_color_override("font_pressed_color", INK)
@@ -240,10 +254,7 @@ func _button(parent: Control, text: String, id: String, kind := "") -> Button:
 func _build_hud() -> void:
 	hud = _layer()
 	objective_box = PanelContainer.new()
-	var ob := box(Color(10 / 255.0, 8 / 255.0, 14 / 255.0, 0.72), Color(0, 0, 0, 0), 4, Vector4(12, 6, 12, 6))
-	ob.border_color = ACCENT
-	ob.border_width_left = 3
-	objective_box.add_theme_stylebox_override("panel", ob)
+	objective_box.add_theme_stylebox_override("panel", plate("ui_panel_small", 10, Vector4(14, 8, 14, 8)))
 	objective_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	objective_box.position = Vector2(12, 10)
 	hud.add_child(objective_box)
@@ -260,7 +271,7 @@ func _build_hud() -> void:
 	row.position = Vector2(-12, 8)
 	hud.add_child(row)
 	var cbox := PanelContainer.new()
-	cbox.add_theme_stylebox_override("panel", box(Color(10 / 255.0, 8 / 255.0, 14 / 255.0, 0.72), Color(0, 0, 0, 0), 6, Vector4(10, 4, 10, 4)))
+	cbox.add_theme_stylebox_override("panel", plate("ui_panel_small", 10, Vector4(12, 6, 12, 6)))
 	cbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(cbox)
 	var cv := VBoxContainer.new()
@@ -273,7 +284,7 @@ func _build_hud() -> void:
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	for which in ["item", "face"]:
 		var p := PanelContainer.new()
-		p.add_theme_stylebox_override("panel", box(Color(10 / 255.0, 8 / 255.0, 14 / 255.0, 0.72), Color("2a2234"), 6, Vector4(3, 3, 3, 3)))
+		p.add_theme_stylebox_override("panel", plate("ui_portrait_frame", 8, Vector4(6, 6, 6, 6)))
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(p)
 		var t := TextureRect.new()
@@ -288,12 +299,10 @@ func _build_hud() -> void:
 		else:
 			face_icon = t
 	pause_btn = Button.new()
-	pause_btn.text = "II"
 	pause_btn.custom_minimum_size = Vector2(48, 48)
-	pause_btn.add_theme_font_override("font", bold)
-	pause_btn.add_theme_stylebox_override("normal", box(Color(10 / 255.0, 8 / 255.0, 14 / 255.0, 0.72), EDGE, 10))
-	pause_btn.add_theme_stylebox_override("hover", box(Color("231b2e"), ACCENT, 10))
-	pause_btn.add_theme_stylebox_override("pressed", box(Color("3e2e52"), ACCENT, 10))
+	pause_btn.add_theme_stylebox_override("normal", plate("ui_pause", 0, Vector4.ZERO))
+	pause_btn.add_theme_stylebox_override("hover", plate("ui_pause", 0, Vector4.ZERO, Color(1.2, 1.15, 1.1)))
+	pause_btn.add_theme_stylebox_override("pressed", plate("ui_pause", 0, Vector4.ZERO, Color(0.7, 0.65, 0.75)))
 	pause_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	pause_btn.focus_mode = Control.FOCUS_NONE
 	pause_btn.pressed.connect(func(): button.emit("pause"))
@@ -383,7 +392,7 @@ func aim(name: String) -> void:
 # ------------------------------------------------------------------ bark
 func _build_bark() -> void:
 	bark_box = PanelContainer.new()
-	bark_box.add_theme_stylebox_override("panel", box(Color(14 / 255.0, 11 / 255.0, 20 / 255.0, 0.86), EDGE, 8, Vector4(14, 8, 14, 9)))
+	bark_box.add_theme_stylebox_override("panel", plate("ui_panel_small", 10, Vector4(16, 10, 16, 11)))
 	bark_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bark_box)
 	var v := VBoxContainer.new()
@@ -450,7 +459,7 @@ func action(label: String, progress: float) -> void:
 # ------------------------------------------------------------------ dialogue
 func _build_dialog() -> void:
 	dialog = PanelContainer.new()
-	dialog.add_theme_stylebox_override("panel", box(PANEL, EDGE, 8, Vector4(10, 10, 14, 12)))
+	dialog.add_theme_stylebox_override("panel", plate("ui_panel_dialog", 14, Vector4(16, 14, 18, 14)))
 	dialog.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(dialog)
 	var row := HBoxContainer.new()
@@ -553,11 +562,19 @@ func choice(options: Array, timeout := 0.0) -> void:
 		p.mouse_entered.connect(func(): _choice_sel = idx; _highlight())
 		choices_box.add_child(p)
 		_choice_items.append(p)
-	choice_bar = ColorRect.new()
-	choice_bar.color = WARM
-	choice_bar.custom_minimum_size = Vector2(0, 4)
+	choice_bar = NinePatchRect.new()
+	choice_bar.texture = ui_tex("ui_bar")
+	choice_bar.patch_margin_left = 8
+	choice_bar.patch_margin_right = 8
+	choice_bar.custom_minimum_size = Vector2(0, 14)
 	choice_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	choice_bar.visible = timeout > 0
+	choice_fill = TextureRect.new()
+	choice_fill.texture = ui_tex("ui_bar_fill")
+	choice_fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	choice_fill.stretch_mode = TextureRect.STRETCH_SCALE
+	choice_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	choice_bar.add_child(choice_fill)
 	choices_box.add_child(choice_bar)
 	_choice_total = timeout
 	_choice_t = timeout
@@ -569,7 +586,7 @@ func choice(options: Array, timeout := 0.0) -> void:
 func _highlight() -> void:
 	for i in range(_choice_items.size()):
 		var sel := i == _choice_sel
-		_choice_items[i].add_theme_stylebox_override("panel", box(Color("3e2e52") if sel else Color(28 / 255.0, 22 / 255.0, 38 / 255.0, 0.96), ACCENT if sel else Color("4a3c5a"), 8, Vector4(14, 11, 14, 11)))
+		_choice_items[i].add_theme_stylebox_override("panel", plate("ui_choice_selected" if sel else "ui_choice", 10, Vector4(16, 12, 16, 12)))
 
 
 func move_choice(d: int) -> void:
@@ -653,8 +670,11 @@ func _panel(id: String, title: String) -> VBoxContainer:
 
 func _build_screens() -> void:
 	var t := _panel("title", "")
-	var tri := Triangle.new()
-	tri.custom_minimum_size = Vector2(64, 56)
+	var tri := TextureRect.new()
+	tri.texture = ui_tex("ui_emblem")
+	tri.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tri.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tri.custom_minimum_size = Vector2(72, 64)
 	tri.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	t.add_child(tri)
 	var h1 := _label(t, 34, INK, true)
@@ -757,6 +777,13 @@ func _build_rotate() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 16)
 	c.add_child(v)
+	var pic := TextureRect.new()
+	pic.texture = ui_tex("ui_rotate")
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.custom_minimum_size = Vector2(96, 96)
+	pic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(pic)
 	var l := _label(v, 20, INK, true)
 	l.text = Tx.t("기기를 가로로 돌려 주세요")
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -784,7 +811,9 @@ func tick(dt: float) -> void:
 	dnext.position.y = 0 if int(_next_t / 0.45) % 2 == 0 else 3
 	if choosing and _choice_total > 0:
 		_choice_t = maxf(0.0, _choice_t - dt)
-		choice_bar.custom_minimum_size.x = choices_box.size.x * _choice_t / _choice_total
+		var inner := choice_bar.size - Vector2(8, 8)
+		choice_fill.position = Vector2(4, 4)
+		choice_fill.size = Vector2(maxf(0.0, inner.x) * _choice_t / _choice_total, maxf(0.0, inner.y))
 	if flash.color.a > 0:
 		flash.color.a = maxf(0.0, flash.color.a - dt)
 
@@ -840,7 +869,8 @@ func touch_rect(c: Control) -> Rect2:
 	return Rect2(c.global_position, c.size) if c.is_visible_in_tree() else Rect2()
 
 
-# ------------------------------------------------------------------ small drawn widgets
+# ------------------------------------------------------------------ image widgets
+## These place the Codex-made interface images; nothing here draws shapes.
 class Cross extends Control:
 	var active := false
 	var hold := 0.0
@@ -850,12 +880,14 @@ class Cross extends Control:
 
 	func _draw() -> void:
 		var c := size * 0.5
-		var col := Color(1, 1, 1, 0.9) if active else Color(1, 1, 1, 0.45)
-		if active:
-			draw_arc(c, 7, 0, TAU, 24, col, 1.5, true)
-		draw_rect(Rect2(c - Vector2(1.5, 1.5), Vector2(3, 3)), col)
 		if hold > 0.0:
-			draw_arc(c, 12, -PI / 2, -PI / 2 + TAU * hold, 32, GameUI.WARM, 3.0, true)
+			# hold-to-use: the lit action disc fills up from the bottom behind the aiming mark
+			var r := GameUI.ui_tex("ui_act_pressed")
+			var d := 30.0
+			draw_texture_rect_region(r, Rect2(c.x - d * 0.5, c.y + d * 0.5 - d * hold, d, d * hold),
+				Rect2(0, r.get_height() * (1.0 - hold), r.get_width(), r.get_height() * hold), Color(1, 1, 1, 0.75))
+		var s := 16.0 if active else 12.0
+		draw_texture_rect(GameUI.ui_tex("ui_cross"), Rect2(c - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color(1, 1, 1, 0.95 if active else 0.5))
 
 
 class Stick extends Control:
@@ -866,16 +898,14 @@ class Stick extends Control:
 	const R := 46.0
 
 	func _draw() -> void:
-		if not on:
-			# Resting stick in the lower left, so players can see where to put a thumb.
-			var rest := Vector2(R + 40, size.y - R - 40)
-			draw_circle(rest, R + 12, Color(1, 1, 1, 0.06))
-			draw_arc(rest, R + 12, 0, TAU, 40, Color(1, 1, 1, 0.22), 2.0, true)
-			draw_circle(rest, 22, Color(1, 1, 1, 0.22))
-			return
-		draw_circle(origin, R + 12, Color(1, 1, 1, 0.08))
-		draw_arc(origin, R + 12, 0, TAU, 40, Color(1, 1, 1, 0.3) if not run else GameUI.WARM, 2.0, true)
-		draw_circle(origin + knob * R, 22, Color(1, 1, 1, 0.35))
+		# at rest the stick waits in the lower left, so players can see where to put a thumb
+		var o := origin if on else Vector2(R + 40, size.y - R - 40)
+		var a := 0.9 if on else 0.5
+		var base_col := Color(1.25, 1.1, 0.8, a) if run else Color(1, 1, 1, a)
+		var B := R + 12
+		draw_texture_rect(GameUI.ui_tex("ui_stick_base"), Rect2(o - Vector2(B, B), Vector2(B, B) * 2), false, base_col)
+		var k := o + (knob * R if on else Vector2.ZERO)
+		draw_texture_rect(GameUI.ui_tex("ui_stick_knob"), Rect2(k - Vector2(22, 22), Vector2(44, 44)), false, Color(1, 1, 1, a))
 
 
 class ActButton extends Control:
@@ -888,15 +918,17 @@ class ActButton extends Control:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
-		var c := size * 0.5
-		var r := size.x * 0.5
-		draw_circle(c, r, Color(0.35, 0.23, 0.48, 0.85) if pressed else Color(0.14, 0.1, 0.2, 0.78))
-		draw_arc(c, r - 1, 0, TAU, 48, GameUI.ACCENT, 2.0, true)
+		var full := Rect2(Vector2.ZERO, size)
+		draw_texture_rect(GameUI.ui_tex("ui_act_pressed" if pressed else "ui_act"), full, false)
 		if progress > 0.0:
-			draw_arc(c, r - 4, -PI / 2, -PI / 2 + TAU * progress, 48, GameUI.WARM, 5.0, true)
+			var r := GameUI.ui_tex("ui_act_pressed")
+			draw_texture_rect_region(r, Rect2(0, size.y * (1.0 - progress), size.x, size.y * progress),
+				Rect2(0, r.get_height() * (1.0 - progress), r.get_width(), r.get_height() * progress), Color(1.3, 1.1, 0.7))
 		if font:
 			var fs := 17
+			var c := size * 0.5
 			var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
+			draw_string_outline(font, Vector2(c.x - w * 0.5, c.y + fs * 0.35), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.8))
 			draw_string(font, Vector2(c.x - w * 0.5, c.y + fs * 0.35), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, GameUI.INK)
 
 
@@ -909,20 +941,4 @@ class RoundButton extends Control:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
-		var c := size * 0.5
-		var r := size.x * 0.5
-		draw_circle(c, r, Color(0.35, 0.23, 0.48, 0.85) if on else Color(0.08, 0.06, 0.11, 0.7))
-		draw_arc(c, r - 1, 0, TAU, 40, Color("4a3c5a"), 1.5, true)
-		if font:
-			var fs := 13
-			var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
-			draw_string(font, Vector2(c.x - w * 0.5, c.y + fs * 0.35), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, GameUI.INK)
-
-
-class Triangle extends Control:
-	func _draw() -> void:
-		var w := size.x
-		var h := size.y
-		var pts := PackedVector2Array([Vector2(w * 0.5, h), Vector2(0, 0), Vector2(w, 0)])
-		draw_colored_polygon(pts, Color("7a4aa8"))
-		draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[0]]), GameUI.ACCENT, 2.0, true)
+		draw_texture_rect(GameUI.ui_tex("ui_crouch_on" if on else "ui_crouch"), Rect2(Vector2.ZERO, size), false)
