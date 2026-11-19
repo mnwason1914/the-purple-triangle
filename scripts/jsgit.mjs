@@ -32,6 +32,7 @@ if (cmd === 'commit') {
 } else if (cmd === 'pages') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-pages-'));
   fs.cpSync('dist', dir, { recursive: true });
+  if (fs.existsSync('dist-godot')) fs.cpSync('dist-godot', path.join(dir, 'godot'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.nojekyll'), '');
   await git.init({ fs, dir, defaultBranch: 'gh-pages' });
   await stageAll(dir);

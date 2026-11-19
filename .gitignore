@@ -6,3 +6,7 @@ tests/.sheet.cjs
 art-src/*/raw/
 art-src/*/logs/
 flow-kit/
+
+# Godot
+godot/.godot/
+dist-godot/
