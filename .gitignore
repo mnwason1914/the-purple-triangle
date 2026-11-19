@@ -5,3 +5,4 @@ tests/.sheet.cjs
 .env.local
 art-src/*/raw/
 art-src/*/logs/
+flow-kit/
