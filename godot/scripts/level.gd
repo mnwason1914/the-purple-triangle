@@ -27,7 +27,7 @@ const MAP := [
 ]
 const WALL_H := 1.2
 const R := 2
-const AMBIENT := {"workshop": 0.42, "kitchen": 0.42, "stairs": 0.28, "cellar": 0.24, "yard": 1.08, "door": 0.55, "wall": 0.0}
+const AMBIENT := {"workshop": 0.42, "kitchen": 0.42, "stairs": 0.7, "cellar": 0.8, "yard": 1.08, "door": 0.55, "wall": 0.0}
 const OPEN := ".,ksyc"
 
 var w := 17
@@ -48,9 +48,9 @@ var lights: Array = [
 	{"id": "winN", "x": 8.5, "y": 6.3, "i": 0.7, "r": 4.5},
 	{"id": "bulb", "x": 5.5, "y": 8.3, "i": 0.45, "r": 4.0},
 	{"id": "winK", "x": 12.5, "y": 9.7, "i": 0.75, "r": 3.6},
-	{"id": "stair", "x": 3.5, "y": 5.6, "i": 0.28, "r": 2.4},
-	{"id": "grate", "x": 5.6, "y": 1.3, "i": 0.42, "r": 3.6},
-	{"id": "cellarBulb", "x": 2.8, "y": 2.0, "i": 0.5, "r": 2.8},
+	{"id": "stair", "x": 3.5, "y": 5.6, "i": 0.45, "r": 3.0},
+	{"id": "grate", "x": 5.6, "y": 1.3, "i": 0.6, "r": 4.0},
+	{"id": "cellarBulb", "x": 2.8, "y": 2.0, "i": 0.85, "r": 4.0},
 ]
 var grid := PackedFloat32Array()
 
