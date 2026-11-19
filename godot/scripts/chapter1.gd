@@ -114,7 +114,7 @@ func opening(g: Game) -> void:
 	g.checkpoint("ch1_open")
 	var w := build(g)
 	g.place(6.4, 8.9, -PI / 2 + 0.35)
-	g.audio.music("none")
+	g.audio.music("home")
 	g.audio.ambience("room")
 	g.ui.fade_now(true)
 	if not fast:
@@ -407,7 +407,7 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 
 # ===================================================================== 1-3 search
 func search(g: Game, w: Dictionary, forced: bool) -> void:
-	g.audio.music("none")
+	g.audio.music("search")
 	var st: Dictionary = w.st
 	var sus := func(n: int): g.inc("suspicion", n)
 	var S := func() -> int: return int(g.flag("suspicion", 10))
@@ -575,7 +575,7 @@ func after(g: Game, w: Dictionary, _resumed: bool) -> void:
 	g.place(8.0, 9.6, PI * 0.75)
 	g.hud(true)
 	g.ui.fade(false)
-	g.audio.music("none")
+	g.audio.music("home")
 	g.audio.ambience("room")
 	g.objective("대문 밖으로 나간다")
 	g.move_lock = false
@@ -635,6 +635,7 @@ func arrest(g: Game, w: Dictionary, why: String, cops: Array) -> void:
 
 
 func ending(g: Game) -> void:
+	g.audio.music("ending")
 	var f := g.flags
 	var lines: Array = []
 	if f.get("ch1_photo") == "burned":

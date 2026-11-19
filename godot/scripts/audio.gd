@@ -21,6 +21,7 @@ func _ready() -> void:
 		add_child(p)
 		_pool.append(p)
 	_music = AudioStreamPlayer.new()
+	_music.volume_db = -9.0  # finished tracks are mastered loud; keep them under the effects
 	add_child(_music)
 	_amb = AudioStreamPlayer.new()
 	add_child(_amb)
@@ -28,8 +29,13 @@ func _ready() -> void:
 
 func _stream(name: String, looped := false) -> AudioStream:
 	if not _streams.has(name):
-		var path := "res://assets/audio/%s.wav" % name
+		# music comes as MP3 (Google Flow Music), sound effects as WAV
+		var path := "res://assets/audio/%s.mp3" % name
+		if not ResourceLoader.exists(path):
+			path = "res://assets/audio/%s.wav" % name
 		var s: AudioStream = load(path) if ResourceLoader.exists(path) else null
+		if s is AudioStreamMP3:
+			(s as AudioStreamMP3).loop = looped
 		if s is AudioStreamWAV and looped:
 			var wv := s as AudioStreamWAV
 			wv.loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -73,7 +79,7 @@ func music(theme: String) -> void:
 	if theme == _theme and _music.playing:
 		return
 	_theme = theme
-	var s := _stream("bgm_" + theme, true)
+	var s := _stream("bgm_" + theme, theme != "ending")
 	if s == null:
 		_music.stop()
 		return
