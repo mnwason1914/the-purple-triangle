@@ -133,6 +133,12 @@ func _ready() -> void:
 		if q is String and q != "":
 			flags = {}
 			_begin(q)
+			# test view: ?at=x,y,angle_degrees puts the player there after the checkpoint loads
+			var at = JavaScriptBridge.eval("new URLSearchParams(location.search).get('at') || ''", true)
+			if at is String and at.count(",") == 2:
+				var p: PackedStringArray = at.split(",")
+				await get_tree().create_timer(0.3, false).timeout
+				place(float(p[0]), float(p[1]), deg_to_rad(float(p[2])))
 	if OS.get_cmdline_user_args().has("--bot"):
 		var bot = load("res://scripts/bot.gd").new()
 		add_child(bot)
@@ -488,6 +494,25 @@ func sprite(name: String, x: float, y: float, z := 0.0, w := 0.0, bright := 0.0)
 	var s := Spr.new(world, name, x, y, z, w, bright)
 	sprites.append(s)
 	return s
+
+
+## Real 3D furniture (see prop.gd). size = (width, height, depth) in world units.
+func prop(base: String, x: float, y: float, size: Vector3, facing := "s", z := 0.0, with_top := true, top_h := -1.0) -> Prop:
+	var p := Prop.new(world, base, x, y, size, facing, z, with_top, top_h)
+	sprites.append(p)
+	return p
+
+
+## Block a rectangular footprint (the walk check uses circles, so lay a row of them along it).
+func solid_box(x: float, y: float, w: float, d: float) -> void:
+	var r := minf(w, d) * 0.5 + 0.06
+	var n := maxi(1, ceili(maxf(w, d) / (r * 1.4)))
+	for i in range(n):
+		var t := (i + 0.5) / n - 0.5
+		if w >= d:
+			solid(x + t * (w - 2.0 * r + 0.12), y, r)
+		else:
+			solid(x, y + t * (d - 2.0 * r + 0.12), r)
 
 
 func set_tex(s: Spr, name: String) -> void:
