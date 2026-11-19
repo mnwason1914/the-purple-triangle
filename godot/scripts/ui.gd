@@ -867,6 +867,11 @@ class Stick extends Control:
 
 	func _draw() -> void:
 		if not on:
+			# Resting stick in the lower left, so players can see where to put a thumb.
+			var rest := Vector2(R + 40, size.y - R - 40)
+			draw_circle(rest, R + 12, Color(1, 1, 1, 0.06))
+			draw_arc(rest, R + 12, 0, TAU, 40, Color(1, 1, 1, 0.22), 2.0, true)
+			draw_circle(rest, 22, Color(1, 1, 1, 0.22))
 			return
 		draw_circle(origin, R + 12, Color(1, 1, 1, 0.08))
 		draw_arc(origin, R + 12, 0, TAU, 40, Color(1, 1, 1, 0.3) if not run else GameUI.WARM, 2.0, true)
