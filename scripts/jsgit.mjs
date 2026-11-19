@@ -31,8 +31,12 @@ if (cmd === 'commit') {
   console.log('committed and pushed', sha.slice(0, 7));
 } else if (cmd === 'pages') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-pages-'));
-  fs.cpSync('dist', dir, { recursive: true });
-  if (fs.existsSync('dist-godot')) fs.cpSync('dist-godot', path.join(dir, 'godot'), { recursive: true });
+  // Godot build is the main game; the older TypeScript build stays reachable under /classic/.
+  fs.cpSync('dist-godot', dir, { recursive: true });
+  fs.cpSync('dist', path.join(dir, 'classic'), { recursive: true });
+  // Phones that opened the old site have its service worker installed at the root. Replace it with
+  // one that clears the old caches and removes itself, so they load the Godot build fresh.
+  fs.writeFileSync(path.join(dir, 'sw.js'), "self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.map(n=>caches.delete(n)))).then(()=>self.registration.unregister()).then(()=>self.clients.matchAll()).then(cs=>cs.forEach(c=>c.navigate(c.url)))));\n");
   fs.writeFileSync(path.join(dir, '.nojekyll'), '');
   await git.init({ fs, dir, defaultBranch: 'gh-pages' });
   await stageAll(dir);
