@@ -50,7 +50,7 @@ func _variant(name: String) -> AudioStream:
 	if s:
 		return s
 	var n := 0
-	while ResourceLoader.exists("res://assets/audio/%s_%d.wav" % [name, n]):
+	while ResourceLoader.exists("res://assets/audio/%s_%d.wav" % [name, n]) or ResourceLoader.exists("res://assets/audio/%s_%d.mp3" % [name, n]):
 		n += 1
 	if n == 0:
 		return null
@@ -69,6 +69,33 @@ func play(name: String, vol := 1.0) -> void:
 	p.volume_db = linear_to_db(clampf(vol, 0.01, 1.5))
 	p.pitch_scale = randf_range(0.94, 1.1) if name == "blip" else 1.0
 	p.play()
+
+
+## Spoken German line (ElevenLabs, assets/voice/<key>.mp3). Returns its length in seconds (0 if none).
+var _voice: AudioStreamPlayer
+var voice_on := true
+
+
+func voice(key: String, vol := 1.0) -> float:
+	if _voice == null:
+		_voice = AudioStreamPlayer.new()
+		add_child(_voice)
+	_voice.stop()
+	if key == "" or not voice_on or not sfx_on:
+		return 0.0
+	var path := "res://assets/voice/%s.mp3" % key
+	if not ResourceLoader.exists(path):
+		return 0.0
+	var s: AudioStream = load(path)
+	_voice.stream = s
+	_voice.volume_db = linear_to_db(clampf(vol, 0.01, 1.5))
+	_voice.play()
+	return s.get_length()
+
+
+func stop_voice() -> void:
+	if _voice:
+		_voice.stop()
 
 
 func music(theme: String) -> void:

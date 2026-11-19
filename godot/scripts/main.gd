@@ -432,7 +432,19 @@ func face(key: String) -> Texture2D:
 
 
 ## Modal line. who: speaker key; name overrides the display name (e.g. "오토 베커 (문밖)").
+## Korean line → recorded German voice file (assets/data/voice.json, from art-src/voice/lines.tsv).
+var _voice_map: Dictionary = {}
+
+
+func _voice_key(text: String) -> String:
+	if _voice_map.is_empty():
+		var j = JSON.parse_string(FileAccess.get_file_as_string("res://assets/data/voice.json"))
+		_voice_map = j if j is Dictionary else {"": ""}
+	return str(_voice_map.get(text, ""))
+
+
 func say(who: String, text: String, name := "") -> void:
+	audio.voice(_voice_key(text))
 	var f: String = FACE_OF.get(who, "")
 	var key := face_key() if who == "paul" else f
 	ui.say(name if name != "" else NAMES.get(who, who), Art.tex(key) if f != "" else null, text)
@@ -440,11 +452,13 @@ func say(who: String, text: String, name := "") -> void:
 
 
 func think(text: String) -> void:
+	audio.voice(_voice_key(text), 0.8)
 	ui.say("파울", null, text, true)
 	await until(func(): return ui.line_done())
 
 
 func end_talk() -> void:
+	audio.stop_voice()
 	ui.close_dialog()
 
 
@@ -818,7 +832,8 @@ func _update_barks(dt: float) -> void:
 		return
 	var b: Dictionary = _bark_q.pop_front()
 	ui.show_bark(b.name, b.text, b.thought)
-	_bark_t = b.secs
+	var vl := audio.voice(_voice_key(b.text), 0.8 if b.thought else 1.0)
+	_bark_t = maxf(b.secs, vl + 0.4)
 	_bark_cur = b
 	sfx("blip", 0.6)
 	b.shown = true
