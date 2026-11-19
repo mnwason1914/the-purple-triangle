@@ -67,13 +67,17 @@ var _tap_q := false
 var _pause_q := false
 var _crouch_q := false
 var _look_d := Vector2.ZERO
-var _stick_id := -1
+## iOS Safari gives touches large identifiers that can arrive negative, so "no finger" must be a
+## value no identifier can take (identifiers are 32-bit).
+const NO_TOUCH := -9223372036854775807
+
+var _stick_id := NO_TOUCH
 var _stick_o := Vector2.ZERO
 var _stick_v := Vector2.ZERO
 var _stick_mag := 0.0
-var _look_id := -1
+var _look_id := NO_TOUCH
 var _look_last := Vector2.ZERO
-var _act_id := -1
+var _act_id := NO_TOUCH
 var _mouse_look := false
 var _mouse_act := false
 var _prev_act := false
@@ -597,7 +601,7 @@ func _render() -> void:
 	ui.crouch_btn.on = crouch
 	ui.crouch_btn.label = Tx.t("일어서기" if crouch else "웅크리기")
 	ui.crouch_btn.queue_redraw()
-	ui.stick.on = _stick_id >= 0
+	ui.stick.on = _stick_id != NO_TOUCH
 	ui.stick.origin = _stick_o
 	ui.stick.knob = _stick_v
 	ui.stick.run = _stick_mag > 0.92
@@ -861,23 +865,23 @@ func _touch(e: InputEventScreenTouch) -> void:
 			_tap_q = true
 			return
 		if e.position.x < ui.size.x * 0.5:
-			if _stick_id < 0:
+			if _stick_id == NO_TOUCH:
 				_stick_id = e.index
 				_stick_o = e.position
 				_stick_v = Vector2.ZERO
 				_stick_mag = 0.0
-		elif _look_id < 0:
+		elif _look_id == NO_TOUCH:
 			_look_id = e.index
 			_look_last = e.position
 	else:
 		if e.index == _stick_id:
-			_stick_id = -1
+			_stick_id = NO_TOUCH
 			_stick_v = Vector2.ZERO
 			_stick_mag = 0.0
 		if e.index == _look_id:
-			_look_id = -1
+			_look_id = NO_TOUCH
 		if e.index == _act_id:
-			_act_id = -1
+			_act_id = NO_TOUCH
 
 
 func _drag(e: InputEventScreenDrag) -> void:
@@ -897,9 +901,9 @@ func _drag(e: InputEventScreenDrag) -> void:
 
 func _release_input() -> void:
 	_keys.clear()
-	_stick_id = -1
-	_look_id = -1
-	_act_id = -1
+	_stick_id = NO_TOUCH
+	_look_id = NO_TOUCH
+	_act_id = NO_TOUCH
 	_stick_v = Vector2.ZERO
 	_stick_mag = 0.0
 	_mouse_look = false
@@ -948,14 +952,14 @@ func _read_input() -> void:
 		if absf(ry) > 0.2:
 			_look_d.y += ry * 6
 		ga = ga or Input.is_joy_button_pressed(j, JOY_BUTTON_A)
-	if _stick_id >= 0:
+	if _stick_id != NO_TOUCH:
 		m += Vector2(_stick_v.x, -_stick_v.y)
 	if m.length() > 1.0:
 		m = m.normalized()
 	in_move = m
 	in_turn = turn
 	in_run = _k(KEY_SHIFT) or _stick_mag > 0.92
-	in_act = _act_id >= 0 or _mouse_act or _k(KEY_E) or _k(KEY_SPACE) or _k(KEY_ENTER) or ga
+	in_act = _act_id != NO_TOUCH or _mouse_act or _k(KEY_E) or _k(KEY_SPACE) or _k(KEY_ENTER) or ga
 	in_act_pressed = in_act and not _prev_act
 	_prev_act = in_act
 	in_any = _tap_q or in_act_pressed
