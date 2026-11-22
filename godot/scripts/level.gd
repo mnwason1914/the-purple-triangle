@@ -294,6 +294,18 @@ func build_mesh() -> ArrayMesh:
 					var u1 := float(i + 1) / R
 					var v0 := float(j) / R
 					var v1 := float(j + 1) / R
+					if ft == "tex_floor_wood":
+						# Real-scale wood boards (~0.143 m wide relative to Paul) with seamless world UVs.
+						u0 = x0 * 1.4
+						u1 = x1 * 1.4
+						v0 = y0 * 1.4
+						v1 = y1 * 1.4
+					elif ft == "tex_floor_creak":
+						# Match real-scale board width (~0.148 m) while keeping the cracked creaky board centred in the cell.
+						u0 = x0 * 1.45
+						u1 = x1 * 1.45
+						v0 = (v0 - 0.5) * 1.5 + 0.5
+						v1 = (v1 - 0.5) * 1.5 + 0.5
 					var lp := [Vector2(x0, y0), Vector2(x1, y0), Vector2(x1, y1), Vector2(x0, y1)]
 					_quad(_st_floor, ft, [Vector3(x0, 0, y0), Vector3(x1, 0, y0), Vector3(x1, 0, y1), Vector3(x0, 0, y1)],
 						[Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)], lp, Vector3.UP)
@@ -336,7 +348,7 @@ func build_mesh() -> ArrayMesh:
 	for tex in _st_floor.keys():
 		var s: SurfaceTool = _st_floor[tex]
 		mesh = s.commit(mesh)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, Art.level_material(Art.tex(tex)))
+		mesh.surface_set_material(mesh.get_surface_count() - 1, Art.level_material(Art.tex(tex), tex))
 	for tex in _st_wall.keys():
 		var s: SurfaceTool = _st_wall[tex]
 		mesh = s.commit(mesh)

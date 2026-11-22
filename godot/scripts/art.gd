@@ -10,18 +10,23 @@ static var _level_shader: Shader
 static var _wall_shader: Shader
 static var _sprite_shader: Shader
 static var _char_shader: Shader
+static var _prop_shader: Shader
 
 const LEVEL_SHADER := """
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform sampler2D tex : filter_nearest, repeat_enable;
+uniform float desat = 0.0;
+uniform vec3 tint = vec3(1.0, 1.0, 1.0);
 vec3 to_linear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
 void fragment() {
 	vec3 t = texture(tex, UV).rgb;
 	// Gentle shadow lift so dark wood floorboards and cellar earth read clearly on mobile screens.
 	vec3 lifted = mix(t, pow(max(t, vec3(0.0001)), vec3(0.72)), 0.58);
+	float lum = dot(lifted, vec3(0.299, 0.587, 0.114));
+	vec3 toned = mix(lifted, vec3(lum), desat) * tint;
 	float L = clamp(COLOR.r * 1.5, 0.52, 1.48);
-	vec3 c = lifted * (L * 1.02 + 0.16);
+	vec3 c = toned * (L * 1.02 + 0.16);
 	ALBEDO = to_linear(clamp(c, 0.0, 1.0));
 }
 """
@@ -107,6 +112,33 @@ void fragment() {
 """
 
 
+const PROP_SHADER := """
+shader_type spatial;
+render_mode unshaded;
+uniform float light = 1.0;
+varying vec3 v_world_normal;
+varying vec3 v_view_dir;
+void vertex() {
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	v_view_dir = normalize(INV_VIEW_MATRIX[3].xyz - wp);
+}
+void fragment() {
+	vec3 n = normalize(v_world_normal);
+	vec3 v = normalize(v_view_dir);
+	float key = max(0.0, dot(n, normalize(vec3(0.32, 0.86, 0.38))));
+	float fill = max(0.0, dot(n, normalize(vec3(-0.45, 0.45, -0.35))));
+	float top = max(0.0, n.y);
+	float fresnel = pow(1.0 - max(0.0, dot(n, v)), 2.6);
+	vec3 base = mix(COLOR.rgb, pow(max(COLOR.rgb, vec3(0.0001)), vec3(0.78)), 0.38);
+	float hemi = 0.72 + 0.48 * key + 0.14 * fill + 0.18 * top;
+	float L = clamp(light * 0.62 + 0.46, 0.72, 1.24);
+	vec3 rim = vec3(0.06, 0.055, 0.048) * (fresnel * 0.5 + top * 0.2) * L;
+	ALBEDO = clamp(base * hemi * L + rim, 0.0, 1.0);
+}
+"""
+
+
 static func init() -> void:
 	var j = JSON.parse_string(FileAccess.get_file_as_string("res://assets/data/sizes.json"))
 	if typeof(j) != TYPE_DICTIONARY:
@@ -124,6 +156,8 @@ static func init() -> void:
 	_sprite_shader.code = SPRITE_SHADER
 	_char_shader = Shader.new()
 	_char_shader.code = CHAR_SHADER
+	_prop_shader = Shader.new()
+	_prop_shader.code = PROP_SHADER
 
 
 static func tex(name: String) -> Texture2D:
@@ -145,10 +179,18 @@ static func world_size(name: String) -> Vector2:
 	return Vector2(w, h)
 
 
-static func level_material(t: Texture2D) -> ShaderMaterial:
+static func level_material(t: Texture2D, tex_name := "") -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = _level_shader
 	m.set_shader_parameter("tex", t)
+	if tex_name == "tex_floor_wood":
+		# Weathered, less red, muted aged pine/oak planks matching the 1930s Silesian workshop.
+		m.set_shader_parameter("desat", 0.44)
+		m.set_shader_parameter("tint", Vector3(0.84, 0.96, 1.08))
+	elif tex_name == "tex_floor_creak":
+		# Matches the weathered wood floor while keeping the bright cracked creaky board clearly visible.
+		m.set_shader_parameter("desat", 0.36)
+		m.set_shader_parameter("tint", Vector3(0.86, 0.97, 1.06))
 	return m
 
 
@@ -169,4 +211,10 @@ static func sprite_material(t: Texture2D) -> ShaderMaterial:
 static func char_material() -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = _char_shader
+	return m
+
+
+static func prop_material() -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = _prop_shader
 	return m

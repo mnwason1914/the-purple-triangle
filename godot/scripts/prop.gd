@@ -1,12 +1,9 @@
 class_name Prop
 extends RefCounted
-## Real 3D furniture: a box whose faces carry Codex-drawn orthographic views of the object
-## (art-src/props → assets/props): front and back share the front view, the two ends share the
-## side view, and the lid is the top view. Openings in the views are transparent, so legs,
-## spokes and shelves read correctly from every angle and the piece stands on the floor.
-## x, y are map coordinates of the footprint centre; size is (width, height, depth) in world units;
-## facing is the direction the front looks: "s" (+map y), "n", "e" (+map x) or "w".
-## top_h is the height of the lid when something (a vice, a pump) sticks up above it in the views.
+## Real 3D furniture & household props: loads low-poly vertex-coloured Blender GLB models
+## (res://assets/models/prop_<id>.glb) scaled with Actor.MODEL_SCALE so furniture matches Paul's
+## real-metre proportions. Falls back to the legacy Codex orthographic picture-box if a GLB is
+## missing. Keeps the full API (x, y, z, hidden, set_top, sync, free_node, light) unchanged.
 
 const SHADER := """
 shader_type spatial;
@@ -22,8 +19,16 @@ void fragment() {
 	ALBEDO = to_linear(clamp(lifted * (light * 0.96 + 0.20) * shade, 0.0, 1.0));
 }
 """
+
+const TOP_TO_MODEL := {
+	"p_crate_top": "crate",
+	"p_crate_top_shallow": "crate_shallow",
+	"p_crate_top_deep": "crate_deep",
+}
+
 static var _shader: Shader
 static var _tex: Dictionary = {}
+static var _mesh_cache: Dictionary = {}
 
 var node: MeshInstance3D
 var x := 0.0
@@ -33,10 +38,11 @@ var size := Vector3.ONE
 var bright := 0.0
 var mats: Array = []
 var top_mat: ShaderMaterial
+var _is_glb := false
 var hidden := false:
 	set(v):
 		hidden = v
-		if node:
+		if is_instance_valid(node):
 			node.visible = not v
 
 
@@ -47,14 +53,65 @@ static func tex(name: String) -> Texture2D:
 	return _tex[name]
 
 
+static func _model_key(base: String) -> String:
+	if base.begins_with("prop_"):
+		return base.substr(5)
+	if base.begins_with("p_"):
+		return base.substr(2)
+	return base
+
+
+static func _find_mesh(n: Node) -> Mesh:
+	if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+		return (n as MeshInstance3D).mesh
+	for c in n.get_children():
+		var m := _find_mesh(c)
+		if m != null:
+			return m
+	return null
+
+
+static func load_mesh(key: String) -> Mesh:
+	if _mesh_cache.has(key):
+		return _mesh_cache[key]
+	var path := "res://assets/models/prop_%s.glb" % key
+	var mesh: Mesh = null
+	if ResourceLoader.exists(path):
+		var res = load(path)
+		if res is PackedScene:
+			var inst: Node = (res as PackedScene).instantiate()
+			mesh = _find_mesh(inst)
+			inst.free()
+		elif res is Mesh:
+			mesh = res
+	_mesh_cache[key] = mesh
+	return mesh
+
+
 func _init(parent: Node3D, base: String, px: float, py: float, sz: Vector3, facing := "s", pz := 0.0, with_top := true, top_h := -1.0) -> void:
-	if _shader == null:
-		_shader = Shader.new()
-		_shader.code = SHADER
 	x = px
 	y = py
 	z = pz
 	size = sz
+	var glb_mesh := load_mesh(_model_key(base))
+	if glb_mesh != null:
+		_is_glb = true
+		node = MeshInstance3D.new()
+		node.mesh = glb_mesh
+		var m := Art.prop_material()
+		node.material_override = m
+		mats.append(m)
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.scale = Vector3.ONE * Actor.MODEL_SCALE
+		# Blender GLBs face -Z forward; map y is world Z ("s" = +Z, "n" = -Z, "e" = +X, "w" = -X).
+		node.rotation.y = {"n": 0.0, "e": -PI / 2, "s": PI, "w": PI / 2}.get(facing, PI)
+		parent.add_child(node)
+		return
+
+	# Fallback: legacy Codex picture-box when no GLB exists for this prop
+	if _shader == null:
+		_shader = Shader.new()
+		_shader.code = SHADER
 	var front := tex(base + "_front")
 	if front == null:
 		front = tex(base + "_side")
@@ -66,14 +123,11 @@ func _init(parent: Node3D, base: String, px: float, py: float, sz: Vector3, faci
 	var hd := sz.z * 0.5
 	var H := sz.y
 	var mesh := ArrayMesh.new()
-	# front (+z) and back (-z): the back is the front view mirrored so it reads the right way round
 	_quad(mesh, front, 1.0, [Vector3(-hw, H, hd), Vector3(hw, H, hd), Vector3(hw, 0, hd), Vector3(-hw, 0, hd)])
 	_quad(mesh, front, 0.8, [Vector3(hw, H, -hd), Vector3(-hw, H, -hd), Vector3(-hw, 0, -hd), Vector3(hw, 0, -hd)])
-	# ends: seen from +x the left edge is +z; seen from -x the left edge is -z
 	_quad(mesh, side, 0.88, [Vector3(hw, H, hd), Vector3(hw, H, -hd), Vector3(hw, 0, -hd), Vector3(hw, 0, hd)])
 	_quad(mesh, side, 0.88, [Vector3(-hw, H, -hd), Vector3(-hw, H, hd), Vector3(-hw, 0, hd), Vector3(-hw, 0, -hd)])
 	if top:
-		# looking down with the front at the bottom of the picture
 		var T := top_h if top_h > 0.0 else H
 		_quad(mesh, top, 1.08, [Vector3(-hw, T, -hd), Vector3(hw, T, -hd), Vector3(hw, T, hd), Vector3(-hw, T, hd)])
 		top_mat = mats[mats.size() - 1]
@@ -82,7 +136,6 @@ func _init(parent: Node3D, base: String, px: float, py: float, sz: Vector3, faci
 	for i in range(mats.size()):
 		node.set_surface_override_material(i, mats[i])
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# map y is world z; facing "s" = front towards +z
 	node.rotation.y = {"s": 0.0, "e": PI / 2, "n": PI, "w": -PI / 2}.get(facing, 0.0)
 	parent.add_child(node)
 
@@ -102,13 +155,23 @@ func _quad(mesh: ArrayMesh, t: Texture2D, shade: float, p: Array) -> void:
 	mats.append(m)
 
 
-## Swap the lid picture (the potato crate after digging).
+## Swap the potato crate state model (GLB) or lid texture (fallback picture-box) after digging.
 func set_top(name: String) -> void:
+	if not is_instance_valid(node):
+		return
+	if _is_glb:
+		var key: String = TOP_TO_MODEL.get(name, _model_key(name))
+		var m := load_mesh(key)
+		if m != null:
+			node.mesh = m
+		return
 	if top_mat and tex(name):
 		top_mat.set_shader_parameter("tex", tex(name))
 
 
 func sync(level: Level) -> void:
+	if not is_instance_valid(node):
+		return
 	node.position = Vector3(x, z, y)
 	var l := bright if bright > 0.0 else level.light(x, y)
 	for m in mats:
