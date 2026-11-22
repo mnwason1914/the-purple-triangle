@@ -1,0 +1,19 @@
+Task: rewrite ALL player-visible Korean text of chapter 1 「가방 속의 소책자」 — owner's request: "대사를 모두 다시 짜". You are the writer (Gemini 4 Argon). Director: Claude (reviews and commits).
+
+Source of truth: godot/scripts/chapter1.gd (the live game). Ignore story/current-lines.md and story/script-ch1.md — they are older drafts of a different chapter.
+
+What to rewrite (string literals only, in chapter1.gd): every g.say(...) line, every inner thought / narration / objective / hint / prompt label, every g.choose([...]) option, the card subtitles, and the ending summary lines in ending().
+
+Fixed — must NOT change:
+- Core theme: Jehovah's Witnesses (Bibelforscher) in a Silesian village, June 1933, right after the ban; hiding 「파수대」, the mimeograph (등사기) and booklets (소책자) before a police search; quiet faith, family, courage, not hatred. Respectful and historically plausible; no slurs, no preaching to the player, no modern slang, no meta/game-talk text ("버튼을 누르세요" etc. only where it already exists as UI).
+- Story events, order, who is present, branches, flags, timers, conditions, endings and their meaning. Speakers stay the same (paul, helena, leni, otto/베커, police, police2, uncle, etc.).
+- Code: change only the text inside string literals. Same number of g.say calls in the same places; same number and order of choose() options (option index meaning must stay); keep cost marks like "(-12초)" and quoted-speech style in choices. Keep names, dates (1933년 6월 29일), places (슐레지엔 · 탈하임), item names 「파수대」, 등사기, 소책자, 감자 상자, 액자, 커피포트 so hints still point to the right objects. Keep <small> tags and \n as used.
+- Length: each line must fit the phone dialogue box — max ~60 Korean characters per g.say line, choices max ~30 characters (plus cost mark).
+
+Goals for the new text: natural spoken Korean (period-appropriate, translated-from-German feel but not stiff), distinct voices (Paul: calm, protective 24-year-old; Helena: tired, firm mother; Leni: 5 years old, simple words; Becker: petty, suspicious neighbour; police: curt official), more tension in the search, warmer family moments, show don't tell. Tighter is better.
+
+Deliver:
+1. Edit godot/scripts/chapter1.gd in place.
+2. story/dialogue-ch1-argon.md: every line, old → new, grouped by scene, with a one-paragraph note on the voices.
+3. Verify: ~/Applications/Godot.app/Contents/MacOS/Godot --headless --path godot -- --bot --fast --plan=good (also sus, shallow, timeout) must all reach END with no SCRIPT ERROR. Paste the END lines into the md.
+Never commit/push/deploy/delete; never touch ~/.codex or keys. python3 and git hang on this Mac — never call them.

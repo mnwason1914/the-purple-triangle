@@ -146,7 +146,7 @@ func opening(g: Game) -> void:
 	g.ui.fade_now(true)
 	if not fast:
 		await Cinema.intro(g)
-		await g.card("1933년 6월 29일 정오<small>슐레지엔 · 탈하임</small>", 2.2)
+		await g.card("1933년 6월 29일 정오<small>프로이센 슐레지엔 · 탈하임</small>", 2.2)
 		g.hide_card()
 	g.hud(true)
 	g.progress = "0/3"
@@ -156,33 +156,33 @@ func opening(g: Game) -> void:
 	g.set_tex(w.radio, "obj_radio_on")
 	w.radio.bright = 0.9
 	g.sfx("radio")
-	await g.say("radio", "어제 유월 이십팔일, 돌격대원 서른 명이 마그데부르크의 성경연구생 공장을 점거했습니다.")
+	await g.say("radio", "어제 유월 이십팔일, 돌격대원 서른 명이 마그데부르크의 성경연구생 본부를 점거했습니다.")
 	g.sfx("radio")
-	await g.say("radio", "건물 위에는 하켄크로이츠 깃발이 게양되었습니다.")
+	await g.say("radio", "현재 옥상에는 하켄크로이츠 깃발이 내걸렸습니다.")
 	g.set_tex(w.radio, "obj_radio")
 	w.radio.bright = 0.0
 	g.sfx("select")
-	await g.say("helena", "프로이센까지 금지령이 내린 지 며칠 만에 본부마저 닫혔구나.")
-	await g.say("paul", "엄마, 놀라지 마. 우리 집 지하실 물건부터 오늘 치울게.")
-	await g.say("leni", "오빠, 라디오 아저씨가 왜 화난 목소리로 말해?")
-	await g.say("paul", "아무 일 아니야, 레니. 넌 의자에 앉아서 그림 그리고 있어.")
+	await g.say("helena", "금지령이 떨어진 지 며칠이나 됐다고… 마그데부르크마저 넘어갔구나.")
+	await g.say("paul", "어머니, 너무 걱정 마세요. 작업대에 둔 것부터 오늘 다 치울게요.")
+	await g.say("leni", "오빠, 라디오 아저씨는 왜 저렇게 무서운 소리로 말해?")
+	await g.say("paul", "괜찮아, 레니. 오빠랑 엄마가 있으니까 넌 앉아서 그림 그리고 있렴.")
 	g.end_talk()
-	g.objective("작업실을 살펴본다")
+	g.objective("작업실 안을 둘러본다")
 	g.move_lock = false
 
 	var s := {"photo_done": false, "nudged": false}
 	var look_bench := func():
-		await g.say("paul", "어젯밤 읍내에서 마르타가 가져온 등사기야. 당장 숨겨야 해.")
+		await g.say("paul", "어젯밤 마르타 자매가 읍내에서 맡긴 등사기와 인쇄물이야. 해 지기 전에 숨겨야 해.")
 		g.end_talk()
-	var look := func(): return "조사"
+	var look := func(): return "살피기"
 	var use_photo := func():
-		await g.think("아버지와 회중 형제들이 함께 찍힌 사진이야.")
+		await g.think("돌아가신 아버지와 회중 형제들이 나란히 서서 찍은 사진이다.")
 		if not s.nudged:
-			await g.say("helena", "파울, 그 사진부터 떼어 내렴. 경찰 손에 얼굴이 들어가면 안 돼.")
-		await g.think("태우면 아버지 얼굴까지 사라져. 하지만 남기면 식구들이 위험해.")
-		var i := await g.choose(["액자에서 사진을 꺼내 석탄 레인지 아궁이에 태운다", "사진을 액자 뒤판 나무 틈에 밀어 넣어 숨긴다"])
+			await g.say("helena", "파울, 그 액자부터 내려놓으렴. 경찰 손에 형제들 얼굴이 넘어가면 안 된다.")
+		await g.think("태워 버리면 아버지 얼굴이 담긴 마지막 사진이 사라진다. 그렇다고 그냥 둘 수도 없어.")
+		var i := await g.choose(["액자에서 빼내 아궁이 불에 태운다", "액자 뒤판 나무 틈에 밀어 숨긴다"])
 		if i == 0:
-			await g.say("paul", "재까지 완전히 부숴 놓을게요.")
+			await g.say("paul", "어머니, 죄송해요. 재 한 줌도 안 남게 태울게요.")
 			g.end_talk()
 			await g.fade(true)
 			g.sfx("fire")
@@ -192,7 +192,7 @@ func opening(g: Game) -> void:
 			await g.wait(1.2)
 			await g.fade(false)
 		else:
-			await g.say("paul", "아궁이에 불이 약해서 연기 나면 더 의심받아요.")
+			await g.say("paul", "차마 못 태우겠어요. 액자 뒤판 틈에 깊숙이 끼워 둘게요.")
 			g.end_talk()
 			g.sfx("paper")
 			g.setf("ch1_photo", "hidden")
@@ -202,7 +202,7 @@ func opening(g: Game) -> void:
 		{"id": "mimeo", "x": w.mimeo.x, "y": w.mimeo.y, "r": 0.12, "name": "등사기", "verb": look, "use": look_bench},
 		{"id": "wt", "x": w.wt.x, "y": w.wt.y, "r": 0.12, "name": "「파수대」 묶음", "verb": look, "use": look_bench},
 		{"id": "booklets", "x": w.booklets.x, "y": w.booklets.y, "r": 0.1, "name": "소책자 묶음", "verb": look, "use": look_bench},
-		{"id": "photo", "x": PHOTO.x, "y": PHOTO.y, "r": 0.3, "name": "가족사진", "verb": func(): return null if s.photo_done else "조사", "use": use_photo},
+		{"id": "photo", "x": PHOTO.x, "y": PHOTO.y, "r": 0.3, "name": "가족사진 액자", "verb": func(): return null if s.photo_done else "살피기", "use": use_photo},
 	]
 	# nudge toward the photo if the player wanders
 	var nudge := func():
@@ -210,8 +210,8 @@ func opening(g: Game) -> void:
 		if s.photo_done or g.state != "play":
 			return
 		s.nudged = true
-		g.bark("helena", "파울, 그 사진부터 떼어 내렴. 경찰 손에 얼굴이 들어가면 안 돼.", 3.4)
-		g.objective("벽의 가족사진")
+		g.bark("helena", "파울, 벽에 걸린 액자부터 내리렴. 형제들 얼굴이 경찰에 넘어가면 큰일 나.", 3.4)
+		g.objective("벽에 걸린 가족사진 액자를 살핀다")
 	nudge.call()
 	await g.until(func(): return s.photo_done and not g.ui.talking)
 	await knock(g)
@@ -226,11 +226,11 @@ func knock(g: Game) -> void:
 	g.haptic(140)
 	await g.wait(0.5)
 	g.sfx("knock_hard", 1.2)
-	await g.say("otto", "바그너 군! 경찰과 함께 나왔소, 당장 문 여시오!", "오토 베커 (문밖)")
-	await g.say("police", "가택 수색이오! 열지 않으면 자물쇠를 따겠소!", "순경 (문밖)")
-	await g.say("helena", "벌써 들이닥쳤어! 파울, 어서 지하실 물건부터 감추렴!")
+	await g.say("otto", "바그너 군! 안에 있는 거 다 아네. 순경 나리들 모시고 왔으니 당장 문 열게!", "오토 베커 (문밖)")
+	await g.say("police", "경찰이다, 가택 수색 나왔소! 당장 열지 않으면 문을 따고 들어가겠소!", "순경 (문밖)")
+	await g.say("helena", "이 사람들이 벌써…! 파울, 작업대 위 물건들부터 어서 감추렴!")
 	g.sfx("scrape")
-	await g.say("otto", "비켜 보시오. 이 동네 자물쇠는 다 내 손을 거쳤소.", "오토 베커 (문밖)")
+	await g.say("otto", "경관님, 비켜 보십시오. 이 동네 자물쇠는 전부 제 손을 거쳤습니다.", "오토 베커 (문밖)")
 	g.end_talk()
 
 
@@ -248,14 +248,14 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 		var h := g.holding
 		var done: int = s.done
 		g.objective(
-			"「파수대」를 커피포트에 (부엌 레인지)" if h == "wt" else
-			"커피포트를 뒷문의 이모부에게" if h == "pot" else
-			"등사기를 지하실 감자 상자에" if h == "mimeo" else
-			"소책자를 레니에게" if h == "booklets" else
-			"현관문 안쪽 빗장 나사를 조인다" if h == "screwdriver" else
-			"손을 씻는다 (부엌 세숫대야)" if g.flag("dirtOnHands", false) else
-			"현관문을 연다" if done == 3 else
-			"숨기기 %d/3 — 「파수대」 · 등사기 · 소책자" % done)
+			"「파수대」를 부엌 레인지 위 커피포트에 넣는다" if h == "wt" else
+			"커피포트를 부엌 뒷문 너머 이모부에게 건넨다" if h == "pot" else
+			"등사기를 지하실 감자 상자 속에 묻는다" if h == "mimeo" else
+			"소책자를 레니의 가방에 넣어 보낸다" if h == "booklets" else
+			"현관문 안쪽 걸쇠 나사를 단단히 조인다" if h == "screwdriver" else
+			"부엌 세숫대야에서 손에 묻은 흙을 씻는다" if g.flag("dirtOnHands", false) else
+			"준비를 마치고 현관문을 연다" if done == 3 else
+			"은닉 %d/3 — 「파수대」 · 등사기 · 소책자" % done)
 	var set_done := func():
 		s.done = (1 if st.wt == "out" else 0) + (1 if st.mimeo == "crate" else 0) + (1 if st.booklets == "leni" else 0)
 		g.progress = "%d/3" % s.done
@@ -294,7 +294,7 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 		g.sfx("paper")
 		refresh.call()
 	var close_back := func():
-		await g.bark("uncle", "알았다, 수색 끝나면 다시 가져가거라.", 2.4, "이모부 (문틈)")
+		await g.bark("uncle", "알았다. 순경들 돌아가거든 뒷문 두드려라.", 2.4, "이모부 (문틈)")
 		await g.wait(1.6)
 		g.level.set_back(false)
 		g.sfx("door", 0.6)
@@ -305,11 +305,11 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 		st.wt = "out"
 		g.inc("solidarity", 5)
 		set_done.call()
-		g.bark("paul", "이모부, 이 커피포트 좀 잠깐만 맡아 주세요.", 2.4)
+		g.bark("paul", "이모부, 순경들이 왔어요. 이 커피포트 좀 잠시 맡아 주세요.", 2.4)
 		close_back.call()
 	var use_crate := func():
-		await g.think("흙 밑바닥까지 깊이 묻어야 꼬챙이로 찔러도 안 걸려.")
-		var i := await g.choose(["감자를 들어내고 바닥 흙 속에 깊이 묻는다 (-12초)", "감자 몇 알만 걷어 내고 얕게 덮는다 (-4초)"])
+		await g.think("쇠꼬챙이로 찔러 볼지도 몰라. 바닥까지 깊숙이 파묻어야 안전해.")
+		var i := await g.choose(["감자를 다 들어내고 바닥에 깊이 묻는다 (-12초)", "감자 몇 알만 걷어 내고 얕게 덮어 둔다 (-4초)"])
 		g.end_talk()
 		g.holding = ""
 		st.mimeo = "crate"
@@ -321,21 +321,21 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 			g.setf("dirtOnHands", true)
 			w.crate.set_top("p_crate_top_deep")
 			set_done.call()
-			g.bark("think", "손에 흙이 잔뜩 묻었어. 올라가서 물통에 씻어야 해.", 3)
+			g.bark("think", "손톱 밑에 젖은 흙이 끼었어. 부엌 세숫대야에서 씻어 내야 해.", 3)
 		else:
 			g.add_time(-4)
 			g.setf("ch1_potato_depth", "shallow")
 			w.crate.set_top("p_crate_top_shallow")
 			set_done.call()
-			g.bark("think", "시간은 아꼈지만 흙이 파헤쳐진 티가 좀 나네.", 3)
+			g.bark("think", "시간은 벌었지만… 상자 위쪽 흙이 파헤쳐진 티가 나는걸.", 3)
 	var leni_go := func():
 		g.holding = ""
 		st.booklets = "leni"
 		g.inc("solidarity", 5)
 		set_done.call()
 		g.sfx("paper")
-		g.bark("paul", "레니, 이걸 책가방에 넣고 대문 밖에 서 있을 수 있니?", 2.8)
-		await g.bark("leni", "응, 오빠. 아무한테도 가방 안 보여 줄게.", 2.6)
+		g.bark("paul", "레니, 이 소책자들 가방에 넣고 대문 밖에서 오빠 기다려 줄래?", 2.8)
+		await g.bark("leni", "응, 오빠! 가방 꼭 메고 대문 밖에 얌전히 서 있을게.", 2.6)
 		g.solids.erase(w.leni_solid)
 		leni.look("spr_leni_bag")
 		leni.speed = 1.3
@@ -352,18 +352,18 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 		g.sfx("wash")
 		g.setf("dirtOnHands", false)
 		refresh.call()
-		g.bark("think", "손톱 밑 흙까지 다 씻어 냈어.")
+		g.bark("think", "좋아, 손톱 밑에 낀 흙까지 깨끗이 씻어 냈어.")
 	var use_wall := func():
 		g.sfx("wipe")
 		g.level.photo = "wiped"
 		g.setf("emptySpot", false)
-		g.bark("think", "걸레로 먼지 자국을 닦아 냈어.")
+		g.bark("think", "기름걸레로 액자가 걸려 있던 먼지 테두리를 지웠어.")
 	var verb_front := func():
 		if g.holding == "screwdriver":
 			return "조이기"
 		if s.done == 3 and g.holding == "":
-			return "열기"
-		return "조사" if g.holding == "" else null
+			return "문 열기"
+		return "살피기" if g.holding == "" else null
 	var use_front := func():
 		if g.holding == "screwdriver":
 			g.sfx("screw")
@@ -373,26 +373,26 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 			g.level.front_scratched = true
 			g.add_time(25)
 			refresh.call()
-			g.bark("think", "안쪽 걸쇠 나사를 조여 뒀어. 조금은 시간을 벌 거야.", 3)
+			g.bark("think", "안쪽 빗장 나사를 끝까지 조여 놓았어. 자물쇠를 따려면 애 좀 먹을 거야.", 3)
 		elif s.done == 3:
 			s.opened = true
 		else:
-			g.bark("think", "아직 안 돼. 숨길 게 남았어.")
+			g.bark("think", "지금 열면 끝장이야. 아직 숨기지 못한 물건이 있어.")
 
 	g.targets = [
-		pick.call("wt", "「파수대」 묶음", func(): g.bark("think", "레인지 옆 빈 커피포트 안에 쑤셔 넣자.")),
+		pick.call("wt", "「파수대」 묶음", func(): g.bark("think", "부엌 레인지 위 빈 커피포트 속에 말아 넣자.")),
 		pick.call("mimeo", "등사기", Callable()),
 		pick.call("booklets", "소책자 묶음", Callable()),
 		pick.call("screwdriver", "드라이버", Callable()),
 		{"id": "bench", "x": BENCH.x, "y": BENCH.y, "r": 0.45, "name": "작업대", "verb": func(): return "내려놓기" if (g.holding != "" and g.holding != "pot") else null, "use": use_bench},
 		{"id": "pot", "x": w.pot.x, "y": w.pot.y, "r": 0.12, "name": "법랑 커피포트", "verb": func(): return "넣기" if g.holding == "wt" else null, "use": use_pot},
-		{"id": "back", "x": BACK.x, "y": BACK.y, "r": 0.3, "name": "뒷문", "verb": func(): return "건네기" if g.holding == "pot" else null, "use": use_back},
-		{"id": "crate", "x": 2.0, "y": 1.45, "r": 0.3, "name": "감자 상자", "verb": func(): return "묻기" if g.holding == "mimeo" else null, "use": use_crate},
+		{"id": "back", "x": BACK.x, "y": BACK.y, "r": 0.3, "name": "부엌 뒷문", "verb": func(): return "건네기" if g.holding == "pot" else null, "use": use_back},
+		{"id": "crate", "x": 2.0, "y": 1.45, "r": 0.3, "name": "감자 상자", "verb": func(): return "파묻기" if g.holding == "mimeo" else null, "use": use_crate},
 		{"id": "leni", "x": leni.x, "y": leni.y, "r": 0.2, "name": "레니", "verb": func(): return "건네기" if (g.holding == "booklets" and st.booklets == "held") else null, "use": use_leni},
-		{"id": "basin", "x": 12.9, "y": 9.64, "r": 0.25, "name": "세숫대야", "verb": func(): return "씻기" if (g.flag("dirtOnHands", false) and g.holding == "") else null, "hold": func(): return 3.0, "use": use_basin},
+		{"id": "basin", "x": 12.9, "y": 9.64, "r": 0.25, "name": "세숫대야", "verb": func(): return "손 씻기" if (g.flag("dirtOnHands", false) and g.holding == "") else null, "hold": func(): return 3.0, "use": use_basin},
 		{"id": "wall", "x": PHOTO.x, "y": PHOTO.y, "r": 0.3, "name": "사진 자국", "verb": func(): return "닦기" if (g.level.photo == "dust" and g.holding == "") else null, "hold": func(): return 2.0, "use": use_wall},
 		{"id": "front", "x": FRONT.x, "y": FRONT.y, "r": 0.3, "name": "현관문", "verb": verb_front, "hold": func(): return 2.0 if g.holding == "screwdriver" else null, "use": use_front},
-		{"id": "helena", "x": w.helena.x, "y": w.helena.y, "r": 0.2, "name": "어머니", "verb": func(): return null if g.holding != "" else "조사", "use": func(): g.bark("helena", "서두르렴, 파울. 문은 내가 지킬게.")},
+		{"id": "helena", "x": w.helena.x, "y": w.helena.y, "r": 0.2, "name": "어머니", "verb": func(): return null if g.holding != "" else "살피기", "use": func(): g.bark("helena", "서두르렴, 파울! 앞문은 엄마가 막고 서 있을게.")},
 	]
 
 	# footsteps that carry outside
@@ -402,13 +402,13 @@ func hide(g: Game, w: Dictionary, resumed: bool) -> void:
 		g.composure = maxf(0.0, g.composure - 6)
 		g.haptic(60)
 		g.sfx("creak", 1.4)
-		var lines := [["police", "안에서 발소리가 나는군. 서두르시오!", "순경 (문밖)"], ["otto", "안에 있는 거 다 압니다, 바그너 군!", "오토 베커 (문밖)"]]
+		var lines := [["police", "안에서 분주한 발소리가 들리는군! 베커 반장, 서두르시오!", "순경 (문밖)"], ["otto", "마룻바닥 삐걱거리는 소리 다 들리네, 바그너 군!", "오토 베커 (문밖)"]]
 		var l: Array = lines[noise.line % 2]
 		noise.line += 1
 		g.bark(l[0], l[1], 2.4, l[2])
 	g.timer.marks = [
-		{"at": 45, "fn": func(): g.bark("otto", "자물쇠가 뻑뻑하군! 조금만 더 비틀면 열립니다!", 3, "오토 베커 (문밖)")},
-		{"at": 20, "fn": func(): g.bark("helena", "파울, 이제 다 됐니? 얼른 현관문 열어 주자!", 3)},
+		{"at": 45, "fn": func(): g.bark("otto", "원, 자물쇠가 왜 이리 뻑뻑한가! 걸쇠만 넘기면 곧 열립니다!", 3, "오토 베커 (문밖)")},
+		{"at": 20, "fn": func(): g.bark("helena", "파울, 다 감췄니? 문 부서지기 전에 우리 손으로 열어야 한다!", 3)},
 	]
 	g.start_timer(90, func(): s.forced = true)
 	# the lock being worked on
@@ -464,17 +464,17 @@ func search(g: Game, w: Dictionary, forced: bool) -> void:
 		if not ["out", "crate", "leni"].has(st[k]):
 			unhidden.append(k)
 	if forced:
-		await g.say("otto", "열렸습니다, 경관님!")
+		await g.say("otto", "자, 빗장이 넘어갔습니다! 들어가시지요, 경관님!")
 	if not unhidden.is_empty():
 		g.setf("ch1_seized", ",".join(unhidden))
 		await arrest(g, w, "mimeo" if unhidden.has("mimeo") else "print", cops)
 		return
 
 	if not forced:
-		await g.say("police", "왜 이제야 문을 여는 거요!")
-		await g.say("paul", "지금 열었습니다, 경관님. 들어오시지요.")
-	await g.say("otto", "하일 히틀러! 경관님, 이 녀석이 성경연구생 핵심입니다.")
-	await g.say("police", "집 안을 전부 수색한다. 두 사람은 벽에 붙어 서 있소.")
+		await g.say("police", "대낮에 문을 걸어 잠그고 뭘 하느라 이제야 여는 거요!")
+		await g.say("paul", "문을 열었습니다, 경관님. 들어오시지요.")
+	await g.say("otto", "하일 히틀러! 경관님, 이 집 아들이 이 동네 성경연구생 우두머리 격입니다.")
+	await g.say("police", "지금부터 작업실과 지하실을 수색한다. 두 사람은 저쪽 벽에 붙어 서 있소.")
 	g.end_talk()
 	await g.fade(true)
 	g.crouch = false
@@ -493,8 +493,8 @@ func search(g: Game, w: Dictionary, forced: bool) -> void:
 	g.walk(pB, [P(3.5, 7.0), P(3.5, 5.2), P(3.5, 4.1), P(2.6, 2.3)])
 	await g.wait(1.2)
 	if g.flag("ch1_lock_sabotaged", false):
-		await g.say("otto", "경관님, 이 녀석이 안에서 문빗장 나사를 조여 놨습니다!")
-		await g.say("paul", "제 집 문입니다. 빗장은 제가 조였습니다.")
+		await g.say("otto", "경관님, 이것 보십시오! 안에서 빗장 나사를 일부러 꽉 조여 놓았습니다!")
+		await g.say("paul", "제 집 문입니다. 안쪽 빗장은 제가 조여 두었습니다.")
 		g.end_talk()
 		sus.call(10)
 		g.composure -= 5
@@ -502,21 +502,21 @@ func search(g: Game, w: Dictionary, forced: bool) -> void:
 		await g.wait(1.5)
 		pA.go([P(7.4, 9.3)])
 		await g.until(func(): return not pA.moving())
-		await g.say("police", "이봐, 손톱 밑에 젖은 흙이 잔뜩 묻어 있군. 지하실부터 뒤져!")
+		await g.say("police", "잠깐, 네 손톱 밑에 웬 젖은 흙이 이리 묻어 있나? 이봐, 지하실부터 샅샅이 뒤져!")
 		g.end_talk()
 		sus.call(10)
 		g.composure -= 10
 		g.walk(pA, [P(9.4, 8.5), P(11.4, 8.2), P(9.6, 8.5), P(6.6, 9.6)])
 	await g.walk(otto, [P(5.5, 7.4), P(5.5, 6.7)])
 	if g.str_flag("ch1_photo") == "burned" and g.flag("emptySpot", false):
-		await g.say("otto", "여기 걸려 있던 가족사진은 어디로 치웠나, 바그너 군?")
-		var i := await g.choose(["“제가 내렸습니다. 이제 없습니다.”", "“그걸 왜 물으십니까?”"], 8)
+		await g.say("otto", "바그너 군, 여기 걸려 있던 자네 부친 사진 액자는 어디로 치웠나? 먼지 자국이 선명한데.")
+		var i := await g.choose(["“제가 떼어 냈습니다. 지금은 없습니다.”", "“그건 왜 물으시는 겁니까?”"], 8)
 		if i == 0:
-			await g.say("paul", "제가 내렸습니다. 이제 없습니다.")
-			await g.say("otto", "흥.")
+			await g.say("paul", "제가 직접 떼어 냈습니다. 지금은 거기 없습니다.")
+			await g.say("otto", "흥, 우리가 올 줄 알고 미리 치웠다 이거지.")
 		else:
 			if i == 1:
-				await g.say("paul", "그걸 왜 물으십니까?")
+				await g.say("paul", "제 집 벽인데, 그건 왜 물으시는 겁니까?")
 			else:
 				await g.say("paul", "…….")
 			sus.call(15)
@@ -527,7 +527,7 @@ func search(g: Game, w: Dictionary, forced: bool) -> void:
 	await g.walk(pB, [P(3.5, 4.1), P(3.5, 6.4), P(4.6, 9.6)])
 	var dug: bool = g.str_flag("ch1_potato_depth") == "shallow" or g.flag("dirtOnHands", false)
 	if not dug or S.call() < 15:
-		await g.say("police2", "지하실엔 썩은 감자랑 자전거 바퀴뿐입니다.")
+		await g.say("police2", "지하실은 싹 뒤져 봤는데, 싹 난 감자 상자하고 헌 바퀴뿐입니다.")
 		g.end_talk()
 	await g.until(func(): return not pA.moving() and not otto.moving())
 
@@ -535,30 +535,30 @@ func search(g: Game, w: Dictionary, forced: bool) -> void:
 		if dug:
 			pB.go([P(7.5, 9.6)])
 			await g.until(func(): return not pB.moving())
-			await g.say("police2", "이 감자 상자 흙이 왜 이렇게 파헤쳐져 있지?")
-			var i := await g.choose(["“제 지하실입니다. 보실 대로 보십시오.”", "“제가… 아까 좀 뒤적였습니다.”"], 8)
+			await g.say("police2", "이봐, 지하실 감자 상자 흙을 누군가 방금 파헤쳐 놓았는데?")
+			var i := await g.choose(["“제 집 지하실입니다. 직접 확인해 보시죠.”", "“제가… 아까 손으로 좀 파헤쳤습니다.”"], 8)
 			if i == 0:
-				await g.say("paul", "제 지하실입니다. 보실 대로 보십시오.")
+				await g.say("paul", "제 집 지하실입니다. 의심스러우면 직접 확인해 보십시오.")
 			else:
-				await g.say("paul", "제가… 아까 좀 뒤적였습니다." if i == 1 else "…….")
+				await g.say("paul", "제가… 아까 손으로 흙을 좀 파헤쳤습니다." if i == 1 else "…….")
 				sus.call(15)
 				g.composure -= 10
 			g.end_talk()
 		if g.str_flag("ch1_photo") == "hidden":
 			otto.go([P(5.5, 6.7)])
 			await g.until(func(): return not otto.moving())
-			await g.say("otto", "액자 뒤판이 불룩하군. 이리 내놔 봐!")
-			await g.say("helena", "남편이 남긴 사진이에요. 그것만은 두고 가세요.")
+			await g.say("otto", "잠깐, 이 액자 뒤판이 왜 이리 불룩한가? 어디 뒷면을 열어 보자고!")
+			await g.say("helena", "세상 떠난 그이가 남긴 사진이에요. 제발 그것만은 손대지 마세요.")
 			if S.call() >= 30:
-				await g.say("otto", "얼굴이 여럿이군. 이건 내가 가져가지.")
+				await g.say("otto", "호오, 모여서 찍은 얼굴이 여럿이군. 이건 증거물로 내가 챙기겠소.")
 				g.setf("ch1_photo_taken", true)
 				g.level.photo = "dust"
 			else:
-				await g.say("police", "사진 한 장 갖고 뭘 그러시오, 베커 반장.")
+				await g.say("police", "고인 사진 한 장 가지고 유난 떨지 마시오, 베커 반장.")
 			g.end_talk()
 			g.walk(otto, [P(6.2, 10.1)])
 		if S.call() >= 40:
-			await g.say("police2", "감자 상자를 바닥까지 파 보겠습니다.")
+			await g.say("police2", "아무래도 수상합니다. 감자 상자를 바닥까지 엎어 보겠습니다.")
 			g.end_talk()
 			await g.walk(pB, [P(3.5, 7.0), P(3.5, 4.1), P(2.6, 2.3)])
 			await g.wait(1.5)
@@ -567,16 +567,16 @@ func search(g: Game, w: Dictionary, forced: bool) -> void:
 				await arrest(g, w, "dig", cops)
 				return
 			await g.walk(pB, [P(3.5, 4.1), P(3.5, 6.4), P(4.6, 9.6)])
-			await g.say("police2", "꼬챙이로 바닥까지 찔러 봤지만 아무것도 없습니다.")
+			await g.say("police2", "쇠꼬챙이로 흙 바닥까지 찔러 봤는데, 감자 말고는 걸리는 게 없습니다.")
 			g.end_talk()
 
 	pA.go([P(5.5, 10.2)])
 	otto.go([P(6.1, 10.3)])
 	pB.go([P(4.9, 10.2)])
 	await g.until(func(): return not pA.moving() and not otto.moving() and not pB.moving())
-	await g.say("police", "인쇄물도 등사기도 없다. 허탕이군, 베커 반장.")
-	await g.say("otto", "네 녀석 작업실에 뭘 숨겼는지 내가 끝까지 찾아낼 거야.")
-	await g.say("police", "다음 집으로 이동한다. 하일 히틀러.")
+	await g.say("police", "금지 인쇄물도 등사기도 안 나오는군. 오늘은 허탕이오, 베커 반장.")
+	await g.say("otto", "운 좋은 줄 알게, 바그너 군. 자네가 뭘 빼돌렸는지 내가 끝까지 밝혀낼 테니.")
+	await g.say("police", "철수한다. 다음 집으로 가지. 하일 히틀러.")
 	g.end_talk()
 	g.walk(pA, [P(5.5, 12.6), P(5.5, 13.6)])
 	g.walk(pB, [P(5.5, 11.4), P(5.2, 13.6)])
@@ -612,9 +612,9 @@ func after(g: Game, w: Dictionary, _resumed: bool) -> void:
 	g.move_lock = true
 	g.pa = atan2(leni.y - g.py, leni.x - g.px)
 	g.audio.ambience("street")
-	await g.say("leni", "오빠, 이제 가방 내려놔도 돼?")
-	await g.say("paul", "응, 잘했어 레니. 정말 잘했어.")
-	await g.say("helena", "어서 들어오렴. 이제부터는 문을 더 단단히 걸어 잠가야겠구나.", "헬레나 (문간)")
+	await g.say("leni", "오빠, 그 사람들 다 갔어? 이제 가방 벗어도 돼?")
+	await g.say("paul", "응, 무거웠지. 이리 주렴, 레니. 정말 장하다, 내 동생.")
+	await g.say("helena", "다친 데 없니, 얘들아. 어서 안으로 들어오렴… 이제 시작일 뿐이구나.", "헬레나 (문간)")
 	g.end_talk()
 	await g.fade(true)
 	g.hud(false)
@@ -626,15 +626,15 @@ func after(g: Game, w: Dictionary, _resumed: bool) -> void:
 func arrest(g: Game, w: Dictionary, why: String, cops: Array) -> void:
 	g.setf("ch1_found", why)
 	if why == "mimeo":
-		await g.say("police", "등사기다! 여기서 찍어 냈군.")
+		await g.say("police", "작업대에 등사기가 버젓이 놓여 있군! 여기서 불온문서를 찍어 냈겠다!")
 	elif why == "dig":
-		await g.say("police2", "반장님, 흙 밑에 등사기가 있습니다!")
+		await g.say("police2", "찾았습니다! 감자 상자 흙 밑에 기름종이로 싼 등사기가 있습니다!")
 	else:
-		await g.say("police", "금지된 인쇄물이군. 전부 압수한다.")
-	await g.say("otto", "제가 뭐랬습니까, 경관님.")
-	await g.say("police", "파울 바그너, 경찰서로 같이 가야겠소.")
-	await g.say("helena", "파울!")
-	await g.say("paul", "엄마, 레니를 부탁해요.")
+		await g.say("police", "금지된 성경연구생 인쇄물이군. 한 장도 남기지 말고 전부 압수해!")
+	await g.say("otto", "보십시오, 경관님! 제 눈은 못 속인다니까요!")
+	await g.say("police", "파울 바그너, 현행범으로 연행한다. 서까지 함께 가야겠소.")
+	await g.say("helena", "안 돼요, 경관님! 파울, 내 아들아…!")
+	await g.say("paul", "어머니, 울지 마세요. 레니 잘 부탁드려요.")
 	g.end_talk()
 	g.setf("paul_detained", true)
 	keep_composure(g)
@@ -653,8 +653,8 @@ func arrest(g: Game, w: Dictionary, why: String, cops: Array) -> void:
 	g.hud(false)
 	g.audio.ambience("street")
 	await g.fade(false)
-	await g.say("leni", "오빠, 어디 가?")
-	await g.say("paul", "금방 올게, 레니. 엄마 말 잘 들어.")
+	await g.say("leni", "오빠, 순경 아저씨들이랑 어디 가?")
+	await g.say("paul", "걱정하지 마, 레니. 어머니 말씀 잘 듣고 있어야 해.")
 	g.end_talk()
 	await g.wait(0.8)
 	await g.fade(true)
@@ -666,29 +666,29 @@ func ending(g: Game) -> void:
 	var f := g.flags
 	var lines: Array = []
 	if f.get("ch1_photo") == "burned":
-		lines.append("아버지의 사진은 재가 되었다.")
+		lines.append("아궁이 속에서 아버지의 사진은 한 줌 재가 되었다.")
 	elif f.get("ch1_photo_taken", false):
-		lines.append("사진 속 얼굴들은 베커의 주머니로 들어갔다.")
+		lines.append("사진 속 얼굴들은 베커의 주머니로 넘어가고 말았다.")
 	else:
-		lines.append("아버지의 사진은 액자 뒤판 속에 남았다.")
+		lines.append("아버지의 사진은 액자 뒤판 틈새에 무사히 남았다.")
 	var seized := str(f.get("ch1_seized", "")).split(",")
 	if seized.has("mimeo"):
-		lines.append("등사기는 경찰의 손에 넘어갔다.")
+		lines.append("밤마다 돌리던 등사기는 경찰의 손에 압수되었다.")
 	elif f.get("ch1_potato_depth") == "deep":
-		lines.append("등사기는 감자 상자 밑 깊은 흙 속에 잠들었다.")
+		lines.append("등사기는 감자 상자 바닥 깊은 흙 속에 숨을 죽였다.")
 	elif f.get("ch1_potato_depth") == "shallow":
-		lines.append("등사기는 감자 몇 알 아래 얕게 묻혔다.")
+		lines.append("등사기는 감자 몇 알 아래 아슬아슬하게 묻혀 있었다.")
 	if seized.has("wt"):
-		lines.append("「파수대」 묶음은 압수되었다.")
+		lines.append("미처 못 숨긴 「파수대」 묶음은 압수되고 말았다.")
 	else:
-		lines.append("「파수대」는 이모부의 커피포트에 담겨 집을 나갔다.")
+		lines.append("「파수대」는 이모부의 커피포트에 담겨 뒷문을 나섰다.")
 	if seized.has("booklets"):
-		lines.append("소책자 묶음도 함께 실려 갔다.")
+		lines.append("나눠 줄 소책자 묶음도 증거물로 함께 실려 나갔다.")
 	else:
-		lines.append("소책자는 레니의 가방 속에서 오후를 보냈다.")
+		lines.append("소책자는 레니의 작은 가방 속에서 오후를 견뎌 냈다.")
 	if f.get("paul_detained", false):
-		lines.append("그날 밤 파울은 집에 돌아오지 못했다.")
+		lines.append("그날 밤 파울은 끝내 집으로 돌아오지 못했다.")
 	if int(f.get("suspicion", 0)) >= 30:
-		lines.append("베커는 이 집을 잊지 않을 것이다.")
+		lines.append("오토 베커는 이 집을 결코 잊지 않을 것이다.")
 	g.hud(false)
 	g.end("제1장 「가방 속의 소책자」", "\n".join(lines))

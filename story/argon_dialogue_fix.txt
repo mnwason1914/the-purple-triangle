@@ -1,0 +1,16 @@
+Director review of your rewrite: good voices and tension, bots pass. One blocking problem and a few small ones. Revise chapter1.gd and story/dialogue-ch1-argon.md in place.
+
+BLOCKING — core theme: Paul and Helena are Jehovah's Witnesses; in this story they NEVER lie, even to the police. They may stay silent, refuse to answer, answer evasively with true words, speak with dignity, or simply invite the search. The original lines were written that way on purpose. Your new lines put lies in Paul's mouth. Rewrite every one so it is literally true, but keep your sharper, tenser tone:
+ - 직접 개방 paul: "자전거 체인을 손보느라 미처 못 들었습니다…" → true (e.g. he opens and invites them in; no excuse).
+ - 빗장 해명 paul: "바람에 문짝이 덜컹거리길래…" → true (he did tighten it himself: own it calmly, e.g. 제 집 문이니 제가 조였습니다).
+ - 사진 추궁 choice 0 + response: "유리가 금이 가서…" → true (he took it down; it is not there now). Choice 1 may stay defiant but respectful.
+ - 감자 choice 0 + response: "점심에 삶을 감자를 고르다 둔 겁니다" → true (it is my cellar; search as you like).
+ - 감자 choice 1 + response: "썩은 감자를 골라냈습니다" → true (I did dig in it earlier — the honest but risky answer; that is why it raises suspicion).
+ - 타임아웃 replies ("…그건 그냥 치웠습니다", "…그냥 감자 상자입니다") are fine if true; keep or go back to silence "……".
+ Check every other Paul/Helena/Leni line for untruths too.
+
+Small:
+ - Otto's title: police always call him "베커 반장" (not "베커 씨").
+ - Ending summary lines: tighten to one plain sentence each, max ~30 Korean characters, no purple prose ("숨을 죽였다", "견뎌 냈다", "끝내" are fine in moderation; avoid stacking adjectives).
+ - Interaction target names/verbs show in a small button: keep each name ≤ 8 characters and verb ≤ 6 (e.g. 사진 자국 / 닦기, 현관문 / 조이기; 동생 레니 → 레니, 어머니 헬레나 → 어머니).
+Then re-run the four bot plans (Godot binary only; never python3/git), update the md (old → new table + END lines).
