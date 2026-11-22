@@ -18,7 +18,8 @@ vec3 to_linear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4
 void fragment() {
 	vec4 c = texture(tex, UV);
 	if (c.a < 0.5) discard;
-	ALBEDO = to_linear(clamp(c.rgb * light * shade, 0.0, 1.0));
+	vec3 lifted = mix(c.rgb, pow(max(c.rgb, vec3(0.0001)), vec3(0.78)), 0.45);
+	ALBEDO = to_linear(clamp(lifted * (light * 0.96 + 0.20) * shade, 0.0, 1.0));
 }
 """
 static var _shader: Shader

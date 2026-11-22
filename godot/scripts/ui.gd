@@ -1,6 +1,6 @@
 class_name GameUI
 extends Control
-## Everything drawn over the world: low-res 3D view, hands, crosshair, HUD, barks, dialogue with
+## Everything drawn over the world: 3D view, interaction prompt, HUD, barks, dialogue with
 ## portraits, timed choices, chapter cards, fades, menus and the touch controls.
 
 signal button(id: String)
@@ -14,20 +14,16 @@ const WARM := Color("e8c070")
 const LATE := Color("ff7a6a")
 const EDGE := Color("3a3046")
 
-var view: SubViewportContainer
+var view: TextureRect
 var sub: SubViewport
 var font: FontVariation
 var bold: FontVariation
 
-# hands
-var hands: Control
-var hand_main: TextureRect
-var hand_l: TextureRect
-var hand_r: TextureRect
-var item_rect: TextureRect
-
-var cross: Cross
+var aim_box: PanelContainer
 var aim_label: Label
+var hold_bar: NinePatchRect
+var hold_fill: TextureRect
+var _hold_prog := 0.0
 var hud: Control
 var objective_box: PanelContainer
 var objective_label: Label
@@ -97,32 +93,48 @@ func _ready() -> void:
 	th.default_font_size = 17
 	theme = th
 
-	view = SubViewportContainer.new()
-	view.stretch = true
-	view.stretch_shrink = 3
-	view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sub = SubViewport.new()
+	sub.handle_input_locally = false
+	sub.msaa_3d = Viewport.MSAA_2X
+	sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	sub.size = Vector2i(960, 540)
+	add_child(sub)
+	view = TextureRect.new()
+	view.texture = sub.get_texture()
+	view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	view.stretch_mode = TextureRect.STRETCH_SCALE
+	view.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_full_rect(view)
 	add_child(view)
-	sub = SubViewport.new()
-	sub.handle_input_locally = false
-	sub.msaa_3d = Viewport.MSAA_DISABLED
-	view.add_child(sub)
 
-	hands = _layer()
-	hand_main = _tex_rect(hands)
-	hand_l = _tex_rect(hands)
-	item_rect = _tex_rect(hands)
-	hand_r = _tex_rect(hands)
-
-	cross = Cross.new()
-	_full_rect(cross)
-	add_child(cross)
-	aim_label = _label(self, 15, INK, true)
+	aim_box = PanelContainer.new()
+	aim_box.add_theme_stylebox_override("panel", plate("ui_panel_small", 10, Vector4(16, 8, 16, 9)))
+	aim_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aim_box.visible = false
+	add_child(aim_box)
+	var av := VBoxContainer.new()
+	av.add_theme_constant_override("separation", 6)
+	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aim_box.add_child(av)
+	aim_label = _label(av, 15, INK, true)
 	aim_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	aim_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	aim_label.add_theme_constant_override("outline_size", 5)
-	aim_label.visible = false
+	aim_label.add_theme_constant_override("outline_size", 4)
+	hold_bar = NinePatchRect.new()
+	hold_bar.texture = ui_tex("ui_bar")
+	hold_bar.patch_margin_left = 8
+	hold_bar.patch_margin_right = 8
+	hold_bar.custom_minimum_size = Vector2(160, 12)
+	hold_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hold_bar.visible = false
+	hold_fill = TextureRect.new()
+	hold_fill.texture = ui_tex("ui_bar_fill")
+	hold_fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hold_fill.stretch_mode = TextureRect.STRETCH_SCALE
+	hold_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hold_bar.add_child(hold_fill)
+	av.add_child(hold_bar)
 
 	flash = ColorRect.new()
 	flash.color = Color(0.8, 0.1, 0.05, 0)
@@ -317,7 +329,8 @@ func _build_hud() -> void:
 func set_hud(on: bool) -> void:
 	hud.visible = on
 	touch.visible = on and _touch_mode
-	cross.visible = on
+	if not on:
+		aim_box.visible = false
 
 
 func objective(t: String) -> void:
@@ -339,54 +352,9 @@ func do_flash(a: float) -> void:
 	flash.color.a = clampf(a, 0.0, 0.5) * 0.6
 
 
-# ------------------------------------------------------------------ hands
-## Hands in low-res pixel units (the 3D view is drawn at size/shrink).
-func draw_hands(on: bool, holding: String, bob: Vector2, light: float, crouching: bool) -> void:
-	for t in [hand_main, hand_l, hand_r, item_rect]:
-		t.visible = false
-	if not on:
-		return
-	var px := float(view.stretch_shrink)
-	var W := size.x / px
-	var VH := size.y / px
-	var s := maxf(1.0, roundf(VH / 90.0))
-	var k := clampf(light * 300.0, 110.0, 300.0) / 256.0
-	var mod := Color(k, k, k)
-	var by := bob.y + (2.0 * s if crouching else 0.0)
-	var put := func(r: TextureRect, name: String, x: float, y: float, w_px: float):
-		var t := Art.tex(name)
-		if t == null:
-			return
-		var pw: float = Art.painted[name].x if Art.painted.has(name) else t.get_width()
-		var sc := w_px / t.get_width() if w_px > 0 else s * pw / t.get_width()
-		r.texture = t
-		r.position = Vector2(x, y) * px
-		r.size = Vector2(t.get_width(), t.get_height()) * sc * px
-		r.modulate = mod
-		r.visible = true
-	if holding == "":
-		put.call(hand_main, "hand_idle", W - 34 * s - 4 + bob.x, VH - 30 * s + by, 0)
-	elif holding == "screwdriver":
-		put.call(hand_main, "hand_screwdriver", W - 34 * s - 4 + bob.x, VH - 30 * s + by, 0)
-	else:
-		var name: String = Game.ITEM_ART[holding]
-		var it := Art.tex(name)
-		if it == null:
-			return
-		var ih := VH * 0.22
-		var iw := ih * it.get_width() / it.get_height()
-		var ix := W * 0.5 - iw * 0.5 + bob.x
-		var iy := VH - ih - 6 * s + by
-		put.call(hand_l, "hand_l", ix - 18 * s, iy + ih - 14 * s, 0)
-		put.call(item_rect, name, ix, iy, iw)
-		put.call(hand_r, "hand_r", ix + iw - 12 * s, iy + ih - 14 * s, 0)
-
-
 func aim(name: String) -> void:
 	aim_label.text = Tx.t(name)
-	aim_label.visible = name != ""
-	cross.active = name != ""
-	cross.queue_redraw()
+	aim_box.visible = name != "" and hud.visible
 
 
 # ------------------------------------------------------------------ bark
@@ -451,9 +419,8 @@ func action(label: String, progress: float) -> void:
 	act.label = Tx.t(label)
 	act.progress = progress
 	act.queue_redraw()
-	aim_label.text = aim_label.text
-	cross.hold = progress
-	cross.queue_redraw()
+	_hold_prog = progress
+	hold_bar.visible = progress > 0.0 and not _touch_mode
 
 
 # ------------------------------------------------------------------ dialogue
@@ -823,7 +790,14 @@ func _layout() -> void:
 		return
 	var W := size.x
 	var H := size.y
-	view.stretch_shrink = maxi(1, roundi(H / 190.0))
+	# Render 3D SubViewport at native window resolution (capped at 900p for smooth mobile WebGL),
+	# keeping 3D character silhouettes sharp while shaders keep nearest filtering on textures.
+	var win := get_window()
+	var phys := Vector2(win.size) if (win and win.size.x > 0 and win.size.y > 0) else Vector2(W, H)
+	var sc := minf(1.0, 900.0 / maxf(1.0, phys.y))
+	var target_sz := Vector2i(maxi(320, roundi(phys.x * sc)), maxi(180, roundi(phys.y * sc)))
+	if sub.size != target_sz:
+		sub.size = target_sz
 	objective_label.custom_minimum_size.x = 0
 	objective_box.size = Vector2.ZERO
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -833,8 +807,14 @@ func _layout() -> void:
 	var row: Control = hud.get_node("status")
 	row.position = Vector2(W - row.get_combined_minimum_size().x - 12, 8)
 	crouch_mark.position = Vector2(14, H - 28)
-	aim_label.size = Vector2(W, 24)
-	aim_label.position = Vector2(0, H * 0.5 + 16)
+	aim_box.size = Vector2.ZERO
+	var asz := aim_box.get_combined_minimum_size()
+	aim_box.size = asz
+	aim_box.position = Vector2((W - asz.x) * 0.5, H * 0.76 - asz.y * 0.5)
+	if hold_bar.visible:
+		var inner := hold_bar.size - Vector2(6, 6)
+		hold_fill.position = Vector2(3, 3)
+		hold_fill.size = Vector2(maxf(0.0, inner.x) * _hold_prog, maxf(0.0, inner.y))
 	# bark under the objective, centred
 	var bw := minf(560.0, W - 40)
 	bark_box.size = Vector2(0, 0)
@@ -871,25 +851,6 @@ func touch_rect(c: Control) -> Rect2:
 
 # ------------------------------------------------------------------ image widgets
 ## These place the Codex-made interface images; nothing here draws shapes.
-class Cross extends Control:
-	var active := false
-	var hold := 0.0
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _draw() -> void:
-		var c := size * 0.5
-		if hold > 0.0:
-			# hold-to-use: the lit action disc fills up from the bottom behind the aiming mark
-			var r := GameUI.ui_tex("ui_act_pressed")
-			var d := 30.0
-			draw_texture_rect_region(r, Rect2(c.x - d * 0.5, c.y + d * 0.5 - d * hold, d, d * hold),
-				Rect2(0, r.get_height() * (1.0 - hold), r.get_width(), r.get_height() * hold), Color(1, 1, 1, 0.75))
-		var s := 16.0 if active else 12.0
-		draw_texture_rect(GameUI.ui_tex("ui_cross"), Rect2(c - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color(1, 1, 1, 0.95 if active else 0.5))
-
-
 class Stick extends Control:
 	var on := false
 	var origin := Vector2.ZERO

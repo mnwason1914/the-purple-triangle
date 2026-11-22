@@ -1,0 +1,20 @@
+You are the gameplay programmer for the Godot 4.7 game in ./godot (THE PURPLE TRIANGLE). Read development/topdown-plan.md first and follow its "Fixed rules" and the "Owner decision: no spoken dialogue" section exactly.
+
+Do task T2 now:
+STEP 0 - remove spoken dialogue as described in the plan (voice files, voice.json, voice code). Keep all Korean on-screen dialogue and the typing blip.
+
+STEP 1 - turn chapter 1 into a top-down 3D game. Read godot/scripts/main.gd, ui.gd, level.gd, spr.gd, actor.gd, prop.gd, chapter1.gd and bot.gd before changing anything. Today the player is a first-person camera at (px, eye, py) with angle pa; actors are camera-facing billboards (Actor extends Spr); furniture is real 3D (Prop); interaction uses a crosshair/aim at targets {id,x,y,r,name,verb,use,hold}; level.build_mesh() builds floor, walls and ceiling from Level.MAP (map x = world X, map y = world Z).
+Required result:
+- Camera: perspective, about 55 degrees pitch, looking at the player from the south (+Z side) at a distance that shows roughly one room, following smoothly. No ceiling. Walls/wall faces that would block the view between camera and player become transparent or are hidden (choose a clean, robust method; e.g. hide wall quads whose normal faces the camera within a radius of the player, or lower them).
+- Player: Paul's model godot/assets/models/chr_paul.glb (+ _w1/_w2 step poses alternating while moving). The player turns to face the movement direction. Movement with the existing stick/WASD/gamepad input, in screen directions (up = away from camera). Keep the existing collision (solids, walls), crouch (slower, quieter), run and the noise system.
+- Actors (Helena, Leni, Otto, police, police2, uncle): replace billboards with the matching chr_<id>.glb models (step poses while walking, face their walk direction). Keep the Actor API used by chapter1.gd (place, go, look, moving, hidden, set_tex/base names) so chapter1.gd keeps working; map old sprite names (spr_helena, spr_leni, spr_leni_bag, spr_leni_draw, spr_otto, spr_police, spr_police2) to model ids.
+- Small item sprites on tables (obj_*) may stay as billboards but must be visible from above.
+- Interaction: instead of the crosshair, the current target is the nearest target within ~1.0 m of the player and within ~70 degrees of Paul's facing; show the same action label/button and hold progress as now. Remove the first-person hands and the crosshair from the HUD.
+- The "look at" moments in chapter1.gd that set g.pa or call g.place(...angle) should still work: they now set Paul's facing.
+- Everything else stays: dialogue, choices, timer, barks, fades, title screen (title can show the house from the top-down camera), touch UI, settings, saves, endings, cinematics.
+STEP 2 - verify:
+- ~/Applications/Godot.app/Contents/MacOS/Godot --headless --path godot --import
+- run the bot for all four plans: Godot --headless --path godot -- --bot --fast --plan=good (and sus, shallow, timeout). All must reach "END:" with no SCRIPT ERROR. Update bot.gd only if the interaction rule change requires it (keep its logic).
+- export the web build: Godot --headless --path godot --export-release "Web" (writes ../dist-godot).
+- write development/reports/T2_topdown.md: what changed, files touched, how the camera/wall hiding works, known issues.
+Do not commit, push or deploy. Do not touch art-src/, story/, or assets other than removing godot/assets/voice and voice.json.

@@ -1,0 +1,7 @@
+Director review of your T2 top-down build (screenshot from the web export at ?cp=ch1_hide). It works and all four bot plans end correctly, but it is not playable yet on a phone. Fix these, then re-run the four bot plans and the web export, and append a "Polish round" section to development/reports/T2_topdown.md:
+1. Far too dark. Floors read almost black and Paul is a dark blob. Keep the room mood (cellar darker than workshop, window light) but raise the overall brightness so floors, furniture and every character are clearly readable on a phone screen in daylight. Characters must always be lit at least as brightly as a well-lit floor (add a soft rim/top light term in CHAR_SHADER).
+2. Paul is too small. Bring the camera closer so the visible area is roughly 6 m wide on a landscape phone; Paul should be about 1/6 of the screen height.
+3. The low-resolution pixel filter (view.stretch_shrink) makes the 3D models mush. Use a smaller shrink for the top-down view (1 or 2 so models read sharply) while keeping nearest filtering on textures.
+4. The cut-away walls leave dark horizontal strips across the floor that look like glitches. Make cut walls read as clean low wall stubs (lit top edge using the wall texture colour), or hide them entirely; no black bands.
+5. The stairwell area in the top-left is a black void; show it as a lit stair opening.
+Rules unchanged (read development/topdown-plan.md). Never run git, never touch files outside this repository.

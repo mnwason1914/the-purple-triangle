@@ -27,7 +27,7 @@ const MAP := [
 ]
 const WALL_H := 1.2
 const R := 2
-const AMBIENT := {"workshop": 0.42, "kitchen": 0.42, "stairs": 0.7, "cellar": 0.8, "yard": 1.08, "door": 0.55, "wall": 0.0}
+const AMBIENT := {"workshop": 0.80, "kitchen": 0.86, "stairs": 1.05, "cellar": 0.56, "yard": 1.15, "door": 0.88, "wall": 0.0}
 const OPEN := ".,ksyc"
 
 var w := 17
@@ -44,13 +44,13 @@ var front_scratched := false:
 var front_open := false
 var back_ajar := false
 var lights: Array = [
-	{"id": "winW", "x": 2.3, "y": 8.5, "i": 0.75, "r": 4.5},
-	{"id": "winN", "x": 8.5, "y": 6.3, "i": 0.7, "r": 4.5},
-	{"id": "bulb", "x": 5.5, "y": 8.3, "i": 0.45, "r": 4.0},
-	{"id": "winK", "x": 12.5, "y": 9.7, "i": 0.75, "r": 3.6},
-	{"id": "stair", "x": 3.5, "y": 5.6, "i": 0.45, "r": 3.0},
-	{"id": "grate", "x": 5.6, "y": 1.3, "i": 0.6, "r": 4.0},
-	{"id": "cellarBulb", "x": 2.8, "y": 2.0, "i": 0.85, "r": 4.0},
+	{"id": "winW", "x": 2.3, "y": 8.5, "i": 0.72, "r": 5.0},
+	{"id": "winN", "x": 8.5, "y": 6.3, "i": 0.70, "r": 5.0},
+	{"id": "bulb", "x": 5.5, "y": 8.3, "i": 0.62, "r": 5.0},
+	{"id": "winK", "x": 12.5, "y": 9.7, "i": 0.72, "r": 4.2},
+	{"id": "stair", "x": 3.5, "y": 5.2, "i": 0.90, "r": 3.8},
+	{"id": "grate", "x": 5.6, "y": 1.3, "i": 0.55, "r": 4.2},
+	{"id": "cellarBulb", "x": 2.8, "y": 2.0, "i": 0.78, "r": 4.2},
 ]
 var grid := PackedFloat32Array()
 
@@ -239,15 +239,17 @@ func _is_floor(x: int, y: int) -> bool:
 
 
 # ------------------------------------------------------------------ mesh
-var _st: Dictionary = {}
+var _st_floor: Dictionary = {}
+var _st_wall: Dictionary = {}
+var wall_mats: Array[ShaderMaterial] = []
 
 
-func _tool(tex: String) -> SurfaceTool:
-	if not _st.has(tex):
+func _tool(bucket: Dictionary, tex: String) -> SurfaceTool:
+	if not bucket.has(tex):
 		var s := SurfaceTool.new()
 		s.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_st[tex] = s
-	return _st[tex]
+		bucket[tex] = s
+	return bucket[tex]
 
 
 func _col(lx: float, ly: float) -> Color:
@@ -255,26 +257,33 @@ func _col(lx: float, ly: float) -> Color:
 	return Color(v, v, v, 1.0)
 
 
-## Quad from four corners (a top-left, b top-right, c bottom-right, d bottom-left) with uvs and
-## light-sample points per corner.
-func _quad(tex: String, p: Array, uv: Array, lp: Array) -> void:
-	var s := _tool(tex)
+## Quad from four corners (a top-left, b top-right, c bottom-right, d bottom-left) with uvs,
+## normal, and light-sample points per corner.
+func _quad(bucket: Dictionary, tex: String, p: Array, uv: Array, lp: Array, normal: Vector3) -> void:
+	var s := _tool(bucket, tex)
 	for i in [0, 1, 2, 0, 2, 3]:
+		s.set_normal(normal)
 		s.set_color(_col(lp[i].x, lp[i].y))
 		s.set_uv(uv[i])
 		s.add_vertex(p[i])
 
 
+func set_cut_focus(pos: Vector3) -> void:
+	for m in wall_mats:
+		m.set_shader_parameter("player_pos", pos)
+
+
 func build_mesh() -> ArrayMesh:
-	_st.clear()
+	_st_floor.clear()
+	_st_wall.clear()
+	wall_mats.clear()
 	var H := WALL_H
 	for y in range(h):
 		for x in range(w):
 			if not _is_floor(x, y):
 				continue
-			# floor and ceiling in 2x2 pieces so the light gradient reads
+			# floor in 2x2 pieces so the light gradient reads; no ceiling in top-down view
 			var ft := floor_tex(x, y)
-			var ct := ceil_tex(x, y)
 			for j in range(R):
 				for i in range(R):
 					var x0 := x + float(i) / R
@@ -286,11 +295,8 @@ func build_mesh() -> ArrayMesh:
 					var v0 := float(j) / R
 					var v1 := float(j + 1) / R
 					var lp := [Vector2(x0, y0), Vector2(x1, y0), Vector2(x1, y1), Vector2(x0, y1)]
-					_quad(ft, [Vector3(x0, 0, y0), Vector3(x1, 0, y0), Vector3(x1, 0, y1), Vector3(x0, 0, y1)],
-						[Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)], lp)
-					if ct != "":
-						_quad(ct, [Vector3(x0, H, y0), Vector3(x1, H, y0), Vector3(x1, H, y1), Vector3(x0, H, y1)],
-							[Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)], lp)
+					_quad(_st_floor, ft, [Vector3(x0, 0, y0), Vector3(x1, 0, y0), Vector3(x1, 0, y1), Vector3(x0, 0, y1)],
+						[Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)], lp, Vector3.UP)
 			# walls facing into this cell; u runs left to right as seen from inside
 			for d in [[0, -1], [0, 1], [-1, 0], [1, 0]]:
 				var nx: int = x + d[0]
@@ -309,19 +315,35 @@ func build_mesh() -> ArrayMesh:
 				else:
 					a = Vector2(x + 1, y); b = Vector2(x + 1, y + 1)
 				var inward := Vector2(-d[0], -d[1]) * 0.05
+				var normal := Vector3(-d[0], 0.0, -d[1])
 				for k in range(R):
 					var pa := a.lerp(b, float(k) / R)
 					var pb := a.lerp(b, float(k + 1) / R)
 					var la := pa + inward
 					var lb := pb + inward
-					_quad(t, [Vector3(pa.x, H, pa.y), Vector3(pb.x, H, pb.y), Vector3(pb.x, 0, pb.y), Vector3(pa.x, 0, pa.y)],
+					_quad(_st_wall, t, [Vector3(pa.x, H, pa.y), Vector3(pb.x, H, pb.y), Vector3(pb.x, 0, pb.y), Vector3(pa.x, 0, pa.y)],
 						[Vector2(float(k) / R, 0), Vector2(float(k + 1) / R, 0), Vector2(float(k + 1) / R, 1), Vector2(float(k) / R, 1)],
-						[la, lb, lb, la])
+						[la, lb, lb, la], normal)
+				# South-facing door/gate cells (F, g) have their -Z face culled from the south camera;
+				# add a clean lit wooden threshold strip at floor level so doors stay unmistakable.
+				if d[1] == 1 and (ch(nx, ny) == "F" or ch(nx, ny) == "g"):
+					var sill_y0 := float(y + 1) - 0.14
+					var sill_y1 := float(y + 1)
+					var lp_s := [Vector2(x, sill_y0), Vector2(x + 1, sill_y0), Vector2(x + 1, sill_y0), Vector2(x, sill_y0)]
+					_quad(_st_floor, t, [Vector3(x, 0.012, sill_y0), Vector3(x + 1, 0.012, sill_y0), Vector3(x + 1, 0.012, sill_y1), Vector3(x, 0.012, sill_y1)],
+						[Vector2(0.0, 0.28), Vector2(1.0, 0.28), Vector2(1.0, 0.44), Vector2(0.0, 0.44)], lp_s, Vector3.UP)
 	var mesh := ArrayMesh.new()
-	for tex in _st.keys():
-		var s: SurfaceTool = _st[tex]
+	for tex in _st_floor.keys():
+		var s: SurfaceTool = _st_floor[tex]
 		mesh = s.commit(mesh)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, Art.level_material(Art.tex(tex)))
-	_st.clear()
+	for tex in _st_wall.keys():
+		var s: SurfaceTool = _st_wall[tex]
+		mesh = s.commit(mesh)
+		var wm := Art.wall_material(Art.tex(tex))
+		wall_mats.append(wm)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, wm)
+	_st_floor.clear()
+	_st_wall.clear()
 	dirty = false
 	return mesh

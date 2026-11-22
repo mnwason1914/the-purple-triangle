@@ -1,14 +1,18 @@
 class_name Game
 extends Node
-## First-person game shell (port of src/fps/game.ts): loop, player movement and posture,
-## footstep noise, crosshair interaction, countdown, barks, NPC walkers and the menus.
+## Top-down 3D game shell: loop, player movement and posture, footstep noise, facing-cone
+## interaction, countdown, barks, NPC walkers and the menus.
 ## Chapter scripts drive it through the small API in the "script API" section. Game logic runs on
-## the 2D map (x, y); the 3D view only draws it.
+## the 2D map (x, y); the 3D view draws it from a south-side 55-degree top-down camera.
 
 signal _never
 
 const SAVE_PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
+const CAM_PITCH := deg_to_rad(55.0)
+const CAM_DIST := 4.30
+const CAM_TITLE_DIST := 5.20
+const CAM_TARGET_Y := 0.38
 const NAMES := {"paul": "파울", "helena": "헬레나", "leni": "레니", "otto": "오토 베커", "police": "순경", "police2": "순경", "radio": "라디오", "uncle": "이모부"}
 const FACE_OF := {"paul": "hud_paul_calm", "helena": "face_helena", "leni": "face_leni", "otto": "face_otto", "police": "face_police", "police2": "face_police"}
 const ITEM_ART := {"wt": "obj_watchtower", "pot": "obj_coffeepot", "mimeo": "obj_mimeograph", "booklets": "obj_booklets", "screwdriver": "obj_screwdriver"}
@@ -20,6 +24,7 @@ var level: Level
 var world: Node3D
 var level_mesh: MeshInstance3D
 var cam: Camera3D
+var player: Actor
 var settings := {"sfx": true, "music": true, "saver": false, "text_speed": 1.0, "haptic": true}
 var state := "title"   # title | play | pause | end
 var flags: Dictionary = {}
@@ -50,8 +55,10 @@ var on_noise: Callable
 var progress := ""
 var flash_t := 0.0
 
+var _cam_pos := Vector3(7.0, CAM_TARGET_Y, 8.0)
 var _step_acc := 0.0
-var _bob := 0.0
+var _walk_phase := 0.0
+var _moving_player := false
 var _hold_t := 0.0
 var _hold_id := ""
 var _bark_q: Array = []
@@ -102,24 +109,15 @@ func _ready() -> void:
 	ui.sub.add_child(world)
 	var env := WorldEnvironment.new()
 	var e := Environment.new()
-	e.background_mode = Environment.BG_SKY
-	var sky := Sky.new()
-	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color("8fb4d6")
-	sm.sky_horizon_color = Color("d8e6ea")
-	sm.ground_horizon_color = Color("d8e6ea")
-	sm.ground_bottom_color = Color("8a9cb4")
-	sm.sun_angle_max = 0.0
-	sm.sky_energy_multiplier = 1.0
-	sky.sky_material = sm
-	e.sky = sky
+	e.background_mode = Environment.BG_COLOR
+	e.background_color = Color("1d1924")
 	e.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env.environment = e
 	ui.sub.add_child(env)
 	cam = Camera3D.new()
-	cam.near = 0.04
-	cam.far = 40.0
-	cam.fov = 46.0
+	cam.near = 0.1
+	cam.far = 50.0
+	cam.fov = 42.0
 	ui.sub.add_child(cam)
 	chapter = Chapter1.new()
 	_apply_settings()
@@ -155,10 +153,8 @@ func _on_resize() -> void:
 	var s := get_viewport().get_visible_rect().size
 	var portrait := s.y > s.x * 1.05 and ui._touch_mode
 	ui.rotate_box.visible = portrait and not _portrait_ok
-	# keep the web version's framing: horizontal plane 0.42 * W / H, clamped
 	var aspect := s.x / maxf(1.0, s.y)
-	var plane := clampf(0.42 * aspect, 0.62, 1.0)
-	cam.fov = rad_to_deg(2.0 * atan(plane / aspect))
+	cam.fov = 42.0 if aspect >= 1.35 else clampf(rad_to_deg(2.0 * atan(tan(deg_to_rad(21.0)) * 1.35 / aspect)), 42.0, 62.0)
 
 
 # ================================================================ flow
@@ -189,11 +185,19 @@ func reset() -> void:
 	epoch += 1
 	for s in sprites:
 		s.free_node()
+	if player:
+		player.free_node()
+		player = null
 	sprites = []
 	actors = []
 	solids = []
 	targets = []
 	level = Level.new()
+	player = Actor.new(world, "paul", px, py)
+	player.angle = pa
+	_walk_phase = 0.0
+	_moving_player = false
+	_cam_pos = Vector3(px, CAM_TARGET_Y, py)
 	holding = ""
 	crouch = false
 	pitch = 0.0
@@ -432,19 +436,7 @@ func face(key: String) -> Texture2D:
 
 
 ## Modal line. who: speaker key; name overrides the display name (e.g. "오토 베커 (문밖)").
-## Korean line → recorded German voice file (assets/data/voice.json, from art-src/voice/lines.tsv).
-var _voice_map: Dictionary = {}
-
-
-func _voice_key(text: String) -> String:
-	if _voice_map.is_empty():
-		var j = JSON.parse_string(FileAccess.get_file_as_string("res://assets/data/voice.json"))
-		_voice_map = j if j is Dictionary else {"": ""}
-	return str(_voice_map.get(text, ""))
-
-
 func say(who: String, text: String, name := "") -> void:
-	audio.voice(_voice_key(text))
 	var f: String = FACE_OF.get(who, "")
 	var key := face_key() if who == "paul" else f
 	ui.say(name if name != "" else NAMES.get(who, who), Art.tex(key) if f != "" else null, text)
@@ -452,13 +444,11 @@ func say(who: String, text: String, name := "") -> void:
 
 
 func think(text: String) -> void:
-	audio.voice(_voice_key(text), 0.8)
 	ui.say("파울", null, text, true)
 	await until(func(): return ui.line_done())
 
 
 func end_talk() -> void:
-	audio.stop_voice()
 	ui.close_dialog()
 
 
@@ -502,6 +492,13 @@ func place(x: float, y: float, a: float) -> void:
 	py = y
 	pa = a
 	pitch = 0.0
+	_moving_player = false
+	_cam_pos = Vector3(px, CAM_TARGET_Y, py)
+	if player:
+		player.x = px
+		player.y = py
+		player.angle = pa
+		player.set_walk_pose(0.0, false)
 
 
 func sprite(name: String, x: float, y: float, z := 0.0, w := 0.0, bright := 0.0) -> Spr:
@@ -609,7 +606,11 @@ func _process(dt: float) -> void:
 		_update_barks(dt)
 	elif state == "title":
 		_title_t += dt
-		pa = -PI / 2 + sin(_title_t * 0.12) * 1.1
+		var tpos := Vector3(6.2 + sin(_title_t * 0.22) * 0.9, CAM_TARGET_Y, 8.6 + cos(_title_t * 0.16) * 0.45)
+		_cam_pos = _cam_pos.lerp(tpos, 1.0 - exp(-dt * 3.0))
+	if state == "play" or state == "end":
+		var target := Vector3(px, CAM_TARGET_Y, py)
+		_cam_pos = _cam_pos.lerp(target, 1.0 - exp(-dt * 8.0))
 	if state != "pause":
 		for a in actors:
 			a.update(dt)
@@ -625,13 +626,20 @@ func _render() -> void:
 		level_mesh = MeshInstance3D.new()
 		level_mesh.mesh = level.build_mesh()
 		world.add_child(level_mesh)
+	if player:
+		player.x = px
+		player.y = py
+		player.angle = pa
+		player.crouching = crouch
+		player.set_walk_pose(_walk_phase, _moving_player)
+		player.sync(level)
 	for s in sprites:
 		s.sync(level)
-	cam.position = Vector3(px, eye, py)
-	cam.rotation = Vector3(pitch, atan2(-cos(pa), -sin(pa)), 0)
-	var playing := state == "play" or state == "pause" or state == "end"
-	var bob := Vector2(sin(_bob) * 2.0, absf(cos(_bob)) * 2.0)
-	ui.draw_hands(playing and hands_on and ui.hud.visible, holding, bob, level.light(px, py), crouch)
+	var cut_focus := Vector3(_cam_pos.x, 0.0, _cam_pos.z) if state == "title" else Vector3(px, 0.0, py)
+	level.set_cut_focus(cut_focus)
+	var dist := CAM_TITLE_DIST if state == "title" else CAM_DIST
+	cam.position = _cam_pos + Vector3(0.0, sin(CAM_PITCH) * dist, cos(CAM_PITCH) * dist)
+	cam.look_at(_cam_pos, Vector3.UP)
 	if ui.hud.visible:
 		var t: Dictionary = timer
 		var s := maxi(0, ceili(t.left))
@@ -653,34 +661,33 @@ func _render() -> void:
 func _update_play(dt: float) -> void:
 	var talking := ui.talking or ui.choosing
 	var free := not talking and not move_lock
-	# look
-	var lk := _look_d
 	_look_d = Vector2.ZERO
-	if not talking and not look_lock:
-		var sens := 3.2 / maxf(320.0, ui.size.x)
-		pa += lk.x * sens + in_turn * 2.2 * dt
-		pitch = clampf(pitch - lk.y * sens * 0.8, -0.55, 0.55)
 	if _crouch_edge and free:
 		crouch = not crouch
 	var eye_t := 0.4 if crouch else 0.71
 	eye += (eye_t - eye) * (1.0 - exp(-dt * 10.0))
-	# move
-	if free and in_move != Vector2.ZERO:
+	# screen-space top-down movement (up = away from camera = -Z)
+	_moving_player = false
+	if free and in_move.length() > 0.05:
 		var run := in_run and not crouch
 		var speed := 0.85 if crouch else 2.7 if run else 1.7
-		var ca := cos(pa)
-		var sa := sin(pa)
-		var vx := (ca * in_move.y - sa * in_move.x) * speed * dt
-		var vy := (sa * in_move.y + ca * in_move.x) * speed * dt
+		var mx := in_move.x
+		var my := -in_move.y
+		var target_a := atan2(my, mx)
+		pa = lerp_angle(pa, target_a, 1.0 - exp(-dt * 16.0))
+		var vx := mx * speed * dt
+		var vy := my * speed * dt
 		var ox := px
 		var oy := py
 		_try_move(vx, vy)
 		var moved := Vector2(px - ox, py - oy).length()
-		_bob += moved * 5.5
-		_step_acc += moved
-		if _step_acc > 0.62:
-			_step_acc = 0.0
-			_step(run)
+		if moved > 0.0005:
+			_moving_player = true
+			_walk_phase += moved * 2.6
+			_step_acc += moved
+			if _step_acc > 0.62:
+				_step_acc = 0.0
+				_step(run)
 	if noise_cd > 0:
 		noise_cd -= dt
 	# aim & act
@@ -785,25 +792,26 @@ func _find_target() -> Dictionary:
 	var best_score := INF
 	var ca := cos(pa)
 	var sa := sin(pa)
+	const MAX_REACH := 1.05
+	const MAX_ANG := deg_to_rad(70.0)
 	for t in targets:
 		if t.verb.call() == null:
 			continue
 		var dx: float = t.x - px
 		var dy: float = t.y - py
 		var d := Vector2(dx, dy).length()
-		if d > t.get("reach", 1.45):
+		var reach: float = minf(MAX_REACH, float(t.get("reach", MAX_REACH)))
+		if d > reach:
 			continue
-		var fwd := dx * ca + dy * sa
-		if fwd <= 0.05:
-			continue
-		var lat := absf(-dx * sa + dy * ca)
-		var ang := atan2(lat, fwd)
-		var tol := atan2(t.get("r", 0.16), fwd) + 0.04
-		if ang > tol:
-			continue
+		var ang := 0.0
+		if d > 0.05:
+			var fwd := (dx * ca + dy * sa) / d
+			ang = acos(clampf(fwd, -1.0, 1.0))
+			if ang > MAX_ANG:
+				continue
 		if _occluded(t.x, t.y):
 			continue
-		var score := ang / tol + d * 0.05
+		var score := d + ang * 0.12
 		if score < best_score:
 			best_score = score
 			best = t
@@ -832,8 +840,7 @@ func _update_barks(dt: float) -> void:
 		return
 	var b: Dictionary = _bark_q.pop_front()
 	ui.show_bark(b.name, b.text, b.thought)
-	var vl := audio.voice(_voice_key(b.text), 0.8 if b.thought else 1.0)
-	_bark_t = maxf(b.secs, vl + 0.4)
+	_bark_t = b.secs
 	_bark_cur = b
 	sfx("blip", 0.6)
 	b.shown = true
@@ -884,8 +891,6 @@ func _input(event: InputEvent) -> void:
 			if ui.talking and not ui.choosing:
 				_tap_q = true
 				return
-			if not ui.choosing:
-				_mouse_look = true
 		else:
 			_mouse_look = false
 			_mouse_act = false
@@ -911,15 +916,12 @@ func _touch(e: InputEventScreenTouch) -> void:
 		if ui.talking:
 			_tap_q = true
 			return
-		if e.position.x < ui.size.x * 0.5:
+		if e.position.x < ui.size.x * 0.6:
 			if _stick_id == NO_TOUCH:
 				_stick_id = e.index
 				_stick_o = e.position
 				_stick_v = Vector2.ZERO
 				_stick_mag = 0.0
-		elif _look_id == NO_TOUCH:
-			_look_id = e.index
-			_look_last = e.position
 	else:
 		if e.index == _stick_id:
 			_stick_id = NO_TOUCH
@@ -1032,14 +1034,10 @@ func _read_input() -> void:
 		m.y += 1
 	if _k(KEY_S) or _k(KEY_DOWN):
 		m.y -= 1
-	if _k(KEY_A):
+	if _k(KEY_A) or _k(KEY_LEFT):
 		m.x -= 1
-	if _k(KEY_D):
+	if _k(KEY_D) or _k(KEY_RIGHT):
 		m.x += 1
-	if _k(KEY_LEFT) or _k(KEY_Q):
-		turn -= 1
-	if _k(KEY_RIGHT):
-		turn += 1
 	var ga := false
 	for j in Input.get_connected_joypads():
 		var ax := Input.get_joy_axis(j, JOY_AXIS_LEFT_X)
