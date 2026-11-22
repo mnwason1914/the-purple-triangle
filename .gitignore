@@ -10,3 +10,4 @@ flow-kit/
 # Godot
 godot/.godot/
 dist-godot/
+logs/

@@ -1,0 +1,10 @@
+You are the 3D artist for the game in this repository (THE PURPLE TRIANGLE). Read development/topdown-plan.md first and follow its "Fixed rules" exactly.
+
+Do task T1 (characters) now, nothing else:
+- Write a Blender Python script art-src/blender/make_characters.py that builds all 7 characters described in T1 procedurally (low-poly, flat shading, vertex colours in a COLOR_0 attribute on a Principled BSDF so the colour survives GLB export), and exports for each character: godot/assets/models/chr_<id>.glb (standing), chr_<id>_w1.glb and chr_<id>_w2.glb (left/right step poses). Ids: paul, helena, leni, leni_bag, otto, police, police2, uncle (leni_bag = Leni with a brown school satchel on her back).
+- Origin at the feet, facing -Z, Paul 1.75 m tall, Leni about 1.05 m, others adult heights.
+- Also render previews (EEVEE or Workbench, small 512 px) to art-src/blender/renders/: <id>_front.png, <id>_side.png and <id>_game.png (camera above and behind at about 55 degrees pitch, like a top-down game).
+- Run it headless with /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python art-src/blender/make_characters.py and fix errors until every file exists.
+- Look at the preview PNGs yourself and improve anything that reads badly from the game camera (faces too small, colours too similar, floating parts).
+- Write development/reports/T1_characters.md: list of files, triangle counts, how to rerun, known issues.
+Do not touch any other part of the repository. Do not commit or push.
