@@ -18,13 +18,14 @@ render_mode unshaded, cull_disabled;
 uniform sampler2D tex : filter_nearest, repeat_enable;
 uniform float desat = 0.0;
 uniform vec3 tint = vec3(1.0, 1.0, 1.0);
+uniform float lift = 1.0;
 vec3 to_linear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
 void fragment() {
 	vec3 t = texture(tex, UV).rgb;
 	// Gentle shadow lift so dark wood floorboards and cellar earth read clearly on mobile screens.
 	vec3 lifted = mix(t, pow(max(t, vec3(0.0001)), vec3(0.72)), 0.58);
 	float lum = dot(lifted, vec3(0.299, 0.587, 0.114));
-	vec3 toned = mix(lifted, vec3(lum), desat) * tint;
+	vec3 toned = mix(lifted, vec3(lum), desat) * tint * lift;
 	float L = clamp(COLOR.r * 1.5, 0.52, 1.48);
 	vec3 c = toned * (L * 1.02 + 0.16);
 	ALBEDO = to_linear(clamp(c, 0.0, 1.0));
@@ -45,23 +46,32 @@ void vertex() {
 }
 void fragment() {
 	float cut_h = 10.0;
-	// Only front-facing walls immediately south of the player (within the direct camera-player
-	// occlusion zone) cut down cleanly to a low lit stub; back-facing south walls are culled cleanly.
+	// Cut walls south of the player (between camera and player) cleanly to a low lit stub everywhere:
+	// 1. Front-facing (+Z) walls directly south of the player cut right away (dz > 0.04).
+	// 2. All walls (including ±X stairwell/corridor side walls) approaching the south camera foreground
+	//    (dz > 0.85) cut down uniformly with no upper dz cutoff, eliminating tall spikes at the screen bottom.
 	float dz = v_world_pos.z - player_pos.z;
 	float dx = abs(v_world_pos.x - player_pos.x);
-	if (dz > 0.02 && dz < 1.15 && v_world_normal.z > 0.5) {
-		float z_mask = smoothstep(0.02, 0.16, dz) * (1.0 - smoothstep(0.75, 1.15, dz));
-		float x_mask = 1.0 - smoothstep(0.9, 1.6, dx);
-		cut_h = mix(1.25, 0.22, z_mask * x_mask);
+	float front_mask = 0.0;
+	if (dz > 0.04 && v_world_normal.z > 0.5) {
+		float z_m = smoothstep(0.04, 0.24, dz);
+		float x_m = 1.0 - smoothstep(1.3, 2.5, dx);
+		front_mask = z_m * x_m;
+	}
+	float fg_mask = smoothstep(0.82, 1.32, dz);
+	float cut_t = max(front_mask, fg_mask);
+	if (cut_t > 0.001) {
+		cut_h = mix(1.25, 0.22, cut_t);
 	}
 	if (v_world_pos.y > cut_h) discard;
-	float L = clamp(COLOR.r * 1.5, 0.58, 1.42);
+	float L = clamp(COLOR.r * 1.5, 0.62, 1.42);
 	vec3 t = texture(tex, UV).rgb;
-	// Lit cutaway top edge sampled from the upper wall colour (never dark baseboard).
-	if (cut_h < 1.21 && v_world_pos.y > cut_h - 0.05) {
-		t = texture(tex, vec2(UV.x, 0.35)).rgb * 1.12;
+	// Lit cutaway top lip sampled from the upper wall texture blended with warm plaster/stone highlight.
+	if (cut_h < 1.21 && v_world_pos.y > cut_h - 0.055) {
+		t = mix(texture(tex, vec2(UV.x, 0.35)).rgb, vec3(0.45, 0.42, 0.38), 0.32) * 1.16;
 	}
-	vec3 c = t * (L * 0.94 + 0.18);
+	vec3 lifted = mix(t, pow(max(t, vec3(0.0001)), vec3(0.84)), 0.32);
+	vec3 c = lifted * (L * 0.96 + 0.20);
 	ALBEDO = to_linear(clamp(c, 0.0, 1.0));
 }
 """
@@ -184,13 +194,15 @@ static func level_material(t: Texture2D, tex_name := "") -> ShaderMaterial:
 	m.shader = _level_shader
 	m.set_shader_parameter("tex", t)
 	if tex_name == "tex_floor_wood":
-		# Weathered, less red, muted aged pine/oak planks matching the 1930s Silesian workshop.
-		m.set_shader_parameter("desat", 0.44)
-		m.set_shader_parameter("tint", Vector3(0.84, 0.96, 1.08))
+		# Warm lifted aged pine/oak planks (less red than raw texture, bright enough to read warmly).
+		m.set_shader_parameter("desat", 0.38)
+		m.set_shader_parameter("tint", Vector3(1.06, 1.18, 1.10))
+		m.set_shader_parameter("lift", 1.24)
 	elif tex_name == "tex_floor_creak":
-		# Matches the weathered wood floor while keeping the bright cracked creaky board clearly visible.
-		m.set_shader_parameter("desat", 0.36)
-		m.set_shader_parameter("tint", Vector3(0.86, 0.97, 1.06))
+		# Matches the warm wood floor while keeping the bright cracked creaky board clearly visible.
+		m.set_shader_parameter("desat", 0.32)
+		m.set_shader_parameter("tint", Vector3(1.04, 1.16, 1.08))
+		m.set_shader_parameter("lift", 1.18)
 	return m
 
 

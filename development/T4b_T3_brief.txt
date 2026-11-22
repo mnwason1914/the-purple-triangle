@@ -1,0 +1,15 @@
+Director review of T4 (your run stopped early on a denied command; the director ran the four bots — all reach the same END — and the web export himself, and committed your work as 2db0930). The furniture looks good. Finish these, in order:
+
+A. T4 fixes
+ 1. Cellar (?cp=ch1_hide&at=3.5,2.5,0): two tall black spike/triangle shapes stick up at the bottom edge of the screen (cut-away south wall leftovers or a stair/pillar mesh). Make cut walls nearest the camera clean low stubs everywhere, never black spikes.
+ 2. Workshop floor is now quite dark brown; lift it a little so it reads as warm wood (kitchen floor is fine).
+ 3. Write development/reports/T4_props.md (what was made, the prop list, scale used, what is left).
+ Then re-run the four bot plans and the web export.
+
+B. T3 cinematics kit for Google Flow (owner makes the videos himself; you make prompts + reference stills)
+ - Read story/script-ch1.md and flow-kit/ch1/flow-prompts.md (the old first-person kit) for the opening and ending moments. Story is unchanged.
+ - Blender reference stills (art-src/blender/make_flow_refs.py → flow-kit/ch1-topdown/refs/*.png, 1920x1080): (1) all seven characters lined up, front view, neutral light; (2) each main character (Paul, Helena, Leni, Otto, policeman) front + 3/4 turnaround sheet; (3) the house: exterior street view of the small Silesian house-with-workshop, and an interior of the kitchen and workshop using the real game props; (4) keyframes for each cut (opening: morning, Paul in the workshop, police at the door; ending: dusk, Paul and Leni walking back into the house, Helena at the door).
+ - flow-kit/ch1-topdown/flow-prompts.md: in Korean instructions + English prompts. For each cut: which ref images to upload, the English video prompt (8 s shots, camera, light, mood, 1933 Silesia, low-poly stylised 3D look matching the game, no text, no speech, no on-screen lettering, no swastika flags or Nazi symbols shown prominently), and the target file name (cut_1_intro.mp4, cut_1_outro.mp4, plus any extra cuts). Keep it to 4–8 shots total.
+ - Report: development/reports/T3_flow_kit.md.
+
+Rules: python3 and git hang on this Mac — never call them. Only the Godot and Blender binaries are allowed as commands; if you need anything else, write it down in the report for the director instead of running it.
